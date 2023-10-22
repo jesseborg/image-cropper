@@ -28,7 +28,7 @@ function ImageUpload() {
 				<hr className="h-[2px] bg-neutral-200" />
 				<div className="flex gap-2">
 					<Input placeholder="Paste image link..." />
-					<Button>Search</Button>
+					<Button intent="primary">Search</Button>
 				</div>
 			</div>
 		</Container>
