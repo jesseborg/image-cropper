@@ -66,6 +66,7 @@ function Background() {
 function ImageUpload() {
 	const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
 		multiple: false,
+		noClick: true,
 		accept: {
 			'image/png': ['.png'],
 			'image/jpeg': ['.jpeg', '.jpg']
