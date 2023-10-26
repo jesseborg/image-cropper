@@ -1,4 +1,6 @@
+import clsx from 'clsx';
 import { ImagePlus } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
 import { Button } from './components/button';
 import { Container } from './components/container';
 import { Input } from './components/input';
@@ -62,27 +64,60 @@ function Background() {
 }
 
 function ImageUpload() {
+	const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+		multiple: false,
+		accept: {
+			'image/png': ['.png'],
+			'image/jpeg': ['.jpeg', '.jpg']
+			// 'image/gif': ['.gif']
+		},
+		onDrop: (files) => {
+			console.log(files);
+		}
+	});
+
 	return (
-		<Container>
+		<Container className="flex min-h-[384px] min-w-[568px]">
 			{/* DropZone */}
-			<div className="flex flex-col gap-4 rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-100 p-4">
+			<div
+				className={clsx(
+					'flex flex-col gap-4 rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-100 p-4',
+					{
+						'!border-blue-500 !bg-blue-50': isDragActive
+					}
+				)}
+				{...getRootProps()}
+			>
 				<Button
 					intent="blank"
-					className="flex h-[250px] w-[500px] select-none flex-col items-center justify-center gap-2 rounded-lg hover:bg-neutral-200/60"
+					className={clsx(
+						'flex w-[500px] flex-grow select-none flex-col items-center justify-center gap-2 rounded-lg stroke-black !tracking-normal transition-none hover:bg-neutral-200/60',
+						{ 'stroke-blue-500 text-blue-500': isDragActive }
+					)}
+					onClick={open}
 				>
-					<ImagePlus className="h-12 w-12 stroke-black" />
+					<input {...getInputProps()} />
+					<ImagePlus className="h-12 w-12 stroke-inherit" />
 					<div className="space-y-1 text-center">
-						<p className="text-sm font-medium">Choose files or drag and drop</p>
-						<p className="text-xs font-medium tracking-wide text-neutral-400">
-							accepts png, jpg, gif
+						<p className="text-sm font-medium">
+							{!isDragActive ? 'Choose files or drag and drop' : 'Drop image here'}
 						</p>
+						{!isDragActive && (
+							<p className="text-xs font-medium tracking-wide text-neutral-400">
+								accepts png and jpg
+							</p>
+						)}
 					</div>
 				</Button>
-				<hr className="h-[2px] bg-neutral-200" />
-				<div className="flex gap-2">
-					<Input placeholder="Paste image link..." />
-					<Button intent="primary">Search</Button>
-				</div>
+				{!isDragActive && (
+					<>
+						<hr className="h-[2px] bg-neutral-200" />
+						<div className="flex gap-2">
+							<Input placeholder="Paste image link..." />
+							<Button intent="primary">Search</Button>
+						</div>
+					</>
+				)}
 			</div>
 		</Container>
 	);
