@@ -14,6 +14,9 @@ const button = cva(
 				primary: ['bg-neutral-950 text-white', 'hover:bg-neutral-800'],
 				secondary: ['text-black bg-white border border-neutral-200', 'hover:bg-neutral-50'],
 				blank: ['bg-transparent']
+			},
+			disabled: {
+				true: 'cursor-not-allowed !bg-neutral-200 !text-neutral-400'
 			}
 		},
 		defaultVariants: {
@@ -27,9 +30,15 @@ type ButtonProps = VariantProps<typeof button>;
 export const Button = forwardRef<
 	HTMLButtonElement,
 	PropsWithChildren<ButtonProps & ButtonHTMLAttributes<HTMLButtonElement>>
->(({ intent, className, children, ...props }, ref) => {
+>(({ intent, disabled, className, children, ...props }, ref) => {
 	return (
-		<button ref={ref} type="button" className={clsx(className, button({ intent }))} {...props}>
+		<button
+			ref={ref}
+			type="button"
+			disabled={disabled}
+			className={clsx(className, button({ intent, disabled }))}
+			{...props}
+		>
 			{children}
 		</button>
 	);
