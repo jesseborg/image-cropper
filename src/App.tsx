@@ -2,9 +2,17 @@ import clsx from 'clsx';
 import { BanIcon, ImagePlus } from 'lucide-react';
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { z } from 'zod';
 import { Button } from './components/button';
 import { Container } from './components/container';
 import { Input } from './components/input';
+
+const ACCEPTED_FILE_TYPES = ['png', 'jpeg', 'jpg', 'bmp'];
+
+const imageURLSchema = z
+	.string()
+	.min(1, ' ')
+	.url("Please check that your link start with 'http://' or 'https://'");
 
 function App() {
 	return (
@@ -69,17 +77,39 @@ function ImageUpload() {
 		multiple: false,
 		noClick: true,
 		noKeyboard: true,
-		accept: {
-			'image/png': ['.png'],
-			'image/jpeg': ['.jpeg', '.jpg']
-			// 'image/gif': ['.gif']
-		},
+		accept: Object.fromEntries(ACCEPTED_FILE_TYPES.map((ext) => [`image/${ext}`, []])),
 		onDrop: (files) => {
 			console.log(files);
 		}
 	});
 
 	const [imageURL, setImageURL] = useState('');
+
+	const validationResult = imageURLSchema.safeParse(imageURL);
+	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+	// @ts-ignore
+	const validationErrors = validationResult.error?.issues;
+
+	async function handleGetImageByURL(url: string) {
+		const response = await fetch(url);
+
+		if (!response.ok) {
+			return;
+		}
+
+		const contentType = response.headers.get('content-type');
+
+		if (!contentType || !contentType.startsWith('image/')) {
+			return;
+		}
+
+		if (ACCEPTED_FILE_TYPES.includes(contentType.split('/')[1])) {
+			const buffer = await response.arrayBuffer();
+			const blob = new Blob([buffer], { type: contentType });
+			const blobURL = URL.createObjectURL(blob);
+			console.log(blobURL);
+		}
+	}
 
 	return (
 		<Container className="flex min-h-[384px] min-w-[568px]">
@@ -116,7 +146,7 @@ function ImageUpload() {
 						</p>
 						{!isDragActive && (
 							<p className="text-xs font-medium tracking-wide text-neutral-400">
-								accepts .png and .jpg
+								accepts {ACCEPTED_FILE_TYPES.join(', ')}
 							</p>
 						)}
 					</div>
@@ -126,11 +156,18 @@ function ImageUpload() {
 						<hr className="h-[2px] bg-neutral-200" />
 						<div className="flex gap-2">
 							<Input
+								error={validationErrors?.[0].message}
 								placeholder="Paste image link..."
 								value={imageURL}
 								onChange={(event) => setImageURL(event.currentTarget.value)}
 							/>
-							<Button intent="primary">Search</Button>
+							<Button
+								disabled={!!validationErrors?.length}
+								intent="primary"
+								onClick={() => handleGetImageByURL(imageURL)}
+							>
+								Search
+							</Button>
 						</div>
 					</>
 				)}
