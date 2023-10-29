@@ -5,14 +5,17 @@ import clsx from 'clsx';
 
 const button = cva(
 	[
-		'rounded-lg px-4 py-2 text-xs font-light tracking-[0.0256em] transition-colors duration-200 select-none',
+		'rounded-lg px-4 py-2 text-xs tracking-[0.0256em] transition-colors duration-200 select-none',
 		'focus-visible:ring-2 ring-offset-2 ring-blue-500 outline-none'
 	],
 	{
 		variants: {
 			intent: {
-				primary: ['bg-neutral-950 text-white', 'hover:bg-neutral-800'],
-				secondary: ['text-black bg-white border border-neutral-200', 'hover:bg-neutral-50'],
+				primary: ['bg-neutral-950 text-white font-light', 'hover:bg-neutral-800'],
+				secondary: [
+					'text-black bg-white border font-medium border-neutral-200',
+					'hover:bg-neutral-50'
+				],
 				blank: ['bg-transparent']
 			},
 			disabled: {
