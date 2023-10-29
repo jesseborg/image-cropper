@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { BanIcon, ImagePlus } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { z } from 'zod';
 import { Button } from './components/button';
@@ -73,22 +73,35 @@ function Background() {
 }
 
 function ImageUpload() {
-	const { isDragReject, getRootProps, getInputProps, isDragActive, open } = useDropzone({
-		multiple: false,
-		noClick: true,
-		noKeyboard: true,
-		accept: Object.fromEntries(ACCEPTED_FILE_TYPES.map((ext) => [`image/${ext}`, []])),
-		onDrop: (files) => {
-			console.log(files);
-		}
-	});
-
 	const [imageURL, setImageURL] = useState('');
+	const [blobURL, setBlobURL] = useState('');
 
 	const validationResult = imageURLSchema.safeParse(imageURL);
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
 	const validationErrors = validationResult.error?.issues;
+
+	function updateBlobURL(blobURL: string) {
+		setBlobURL((url) => {
+			URL.revokeObjectURL(url);
+			return blobURL;
+		});
+	}
+
+	const { isDragReject, getRootProps, getInputProps, isDragActive, open } = useDropzone({
+		multiple: false,
+		noClick: true,
+		noKeyboard: true,
+		accept: Object.fromEntries(ACCEPTED_FILE_TYPES.map((ext) => [`image/${ext}`, []])),
+		onDrop: async (files) => {
+			if (!files.length) {
+				return;
+			}
+
+			const blob = URL.createObjectURL(files[0]);
+			updateBlobURL(blob);
+		}
+	});
 
 	async function handleGetImageByURL(url: string) {
 		const response = await fetch(url);
@@ -103,13 +116,24 @@ function ImageUpload() {
 			return;
 		}
 
-		if (ACCEPTED_FILE_TYPES.includes(contentType.split('/')[1])) {
-			const buffer = await response.arrayBuffer();
-			const blob = new Blob([buffer], { type: contentType });
-			const blobURL = URL.createObjectURL(blob);
-			console.log(blobURL);
+		// 'image/<type>'
+		if (!ACCEPTED_FILE_TYPES.includes(contentType.split('/')[1])) {
+			return;
 		}
+
+		const blob = URL.createObjectURL(await response.blob());
+		updateBlobURL(blob);
 	}
+
+	// Revoke Blob on unmount
+	useEffect(() => {
+		return () => {
+			if (blobURL) {
+				URL.revokeObjectURL(blobURL);
+			}
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	return (
 		<Container className="flex min-h-[384px] min-w-[568px]">
@@ -172,6 +196,8 @@ function ImageUpload() {
 					</>
 				)}
 			</div>
+			{/* Temporary */}
+			{!!blobURL?.length && <img className="h-96 w-96 object-contain p-2" src={blobURL} />}
 		</Container>
 	);
 }
