@@ -76,7 +76,7 @@ export function ImageUpload({ onImageLoad }: ImageUploadProps) {
 			<Button
 				intent="blank"
 				className={clsx(
-					'flex w-[500px] flex-grow select-none flex-col items-center justify-center gap-2 rounded-lg stroke-black !tracking-normal transition-none hover:bg-neutral-200/60',
+					'flex h-[250px] w-[500px] flex-grow select-none flex-col items-center justify-center gap-2 rounded-lg stroke-black !tracking-normal transition-none hover:bg-neutral-200/60',
 					{ 'stroke-blue-500 text-blue-500': isDragActive },
 					{ 'stroke-red-500 text-red-500': isDragReject }
 				)}

@@ -1,25 +1,31 @@
+import clsx from 'clsx';
 import { useState } from 'react';
+import {} from 'react-zoom-pan-pinch';
 import { Container } from './components/container';
+import { ImageEditor } from './components/image-editor';
 import { ImageUpload } from './components/image-upload';
 
 function App() {
 	const [blobURL, setBlobURL] = useState('');
+	const [stepIndex, setStepIndex] = useState(0);
 
 	return (
-		<main className="flex h-screen items-center justify-center overflow-hidden bg-neutral-100">
-			<Background />
-			<Container className="flex min-h-[384px] min-w-[568px]">
-				<ImageUpload
-					onImageLoad={(blobURL) => {
-						// Revoke old Blob URL before updating
-						setBlobURL((url) => {
-							URL.revokeObjectURL(url);
-							return blobURL;
-						});
-					}}
-				/>
-				{/* Temporary */}
-				{!!blobURL?.length && <img className="h-96 w-96 object-contain p-2" src={blobURL} />}
+		<main className="flex h-screen items-center justify-center overflow-hidden bg-neutral-100 p-4">
+			{stepIndex === 0 && <Background />}
+			<Container className={clsx('m-32', { 'flex max-h-full': stepIndex === 1 })}>
+				{stepIndex === 0 && (
+					<ImageUpload
+						onImageLoad={(blobURL) => {
+							// Revoke old Blob URL before updating
+							setBlobURL((url) => {
+								URL.revokeObjectURL(url);
+								return blobURL;
+							});
+							setStepIndex(1);
+						}}
+					/>
+				)}
+				{stepIndex === 1 && <ImageEditor src={blobURL} onCancel={() => setStepIndex(0)} />}
 			</Container>
 		</main>
 	);
@@ -29,7 +35,7 @@ function Background() {
 	return (
 		<div className="pointer-events-none absolute inset-0 overflow-hidden">
 			{/* Noise Filter */}
-			{/* <svg
+			<svg
 				className="opacity-50 mix-blend-overlay"
 				width="100%"
 				height="100%"
@@ -55,7 +61,7 @@ function Background() {
 				</defs>
 
 				<rect width="100%" height="100%" filter="url(#whiteNoise)" />
-			</svg> */}
+			</svg>
 
 			{/* Coloured Circles */}
 			<svg
