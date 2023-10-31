@@ -11,8 +11,10 @@ function App() {
 
 	return (
 		<main className="flex h-screen items-center justify-center overflow-hidden bg-neutral-100 p-4">
-			{stepIndex === 0 && <Background />}
-			<Container className={clsx('m-32', { 'flex max-h-full': stepIndex === 1 })}>
+			<Background src={blobURL} />
+			<Container
+				className={clsx('z-10 m-32', { 'flex max-h-[calc(100%-256px)]': stepIndex === 1 })}
+			>
 				{stepIndex === 0 && (
 					<ImageUpload
 						onImageLoad={(blobURL) => {
@@ -25,13 +27,24 @@ function App() {
 						}}
 					/>
 				)}
-				{stepIndex === 1 && <ImageEditor src={blobURL} onCancel={() => setStepIndex(0)} />}
+				{stepIndex === 1 && (
+					<ImageEditor
+						src={blobURL}
+						onCancel={() => {
+							setBlobURL((url) => {
+								URL.revokeObjectURL(url);
+								return '';
+							});
+							setStepIndex(0);
+						}}
+					/>
+				)}
 			</Container>
 		</main>
 	);
 }
 
-function Background() {
+function Background({ src }: { src: string }) {
 	return (
 		<div className="pointer-events-none absolute inset-0 overflow-hidden">
 			{/* Noise Filter */}
@@ -76,6 +89,13 @@ function Background() {
 				<circle cx="258" cy="107" r="107" fill="#FFF7ED" />
 				<circle cx="611" cy="251" r="136" fill="#EFF6FF" />
 			</svg>
+
+			{!!src && (
+				<img
+					className="absolute left-1/2 top-1/2 z-0 max-h-[calc(100%-256px)] -translate-x-1/2 -translate-y-1/2 scale-95 p-32 blur-3xl saturate-200"
+					src={src}
+				/>
+			)}
 		</div>
 	);
 }
