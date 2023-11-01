@@ -6,3 +6,7 @@
 	font-family: 'Inter var';
 	src: url('/fonts/Inter.var.woff2') format('woff2');
 }
+
+html {
+	@apply bg-neutral-100;
+}

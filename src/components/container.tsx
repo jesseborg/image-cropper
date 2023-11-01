@@ -9,7 +9,7 @@ export function Container({
 	...props
 }: PropsWithChildren<ContainerProps & HTMLAttributes<HTMLDivElement>>) {
 	return (
-		<div className={clsx('rounded-3xl bg-white p-4 shadow-md', className)} {...props}>
+		<div className={clsx('z-10 flex rounded-3xl bg-white p-4 shadow-md', className)} {...props}>
 			{children}
 		</div>
 	);
