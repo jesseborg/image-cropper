@@ -65,7 +65,7 @@ export function ImageUpload({ onImageLoad }: ImageUploadProps) {
 	return (
 		<div
 			className={clsx(
-				'flex flex-col gap-4 rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-100 p-4',
+				'flex w-full flex-col gap-4 overflow-hidden rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-100 p-4',
 				{
 					'!border-blue-500 !bg-blue-50': isDragActive,
 					'!border-red-500 !bg-red-50': isDragReject
@@ -76,7 +76,7 @@ export function ImageUpload({ onImageLoad }: ImageUploadProps) {
 			<Button
 				intent="blank"
 				className={clsx(
-					'flex h-[250px] w-[500px] flex-grow select-none flex-col items-center justify-center gap-2 rounded-lg stroke-black !tracking-normal transition-none hover:bg-neutral-200/60',
+					'flex h-[250px] w-full max-w-[500px] flex-grow select-none flex-col items-center justify-center gap-2 rounded-lg stroke-black px-40 !tracking-normal transition-none hover:bg-neutral-200/60',
 					{ 'stroke-blue-500 text-blue-500': isDragActive },
 					{ 'stroke-red-500 text-red-500': isDragReject }
 				)}
@@ -85,7 +85,7 @@ export function ImageUpload({ onImageLoad }: ImageUploadProps) {
 				<input {...getInputProps()} />
 				{!isDragReject && <ImagePlus className="h-12 w-12 stroke-inherit" />}
 				{isDragReject && <BanIcon className="h-12 w-12 stroke-inherit" />}
-				<div className="space-y-1 text-center">
+				<div className="space-y-1 whitespace-nowrap text-center">
 					<p className="text-sm font-medium">
 						{isDragActive
 							? isDragReject

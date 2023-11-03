@@ -35,7 +35,7 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 				>
 					<TransformComponent
 						wrapperClass={clsx('relative rounded-lg border border-neutral-200 shadow-lg', {
-							// 'min-h-[500px] min-w-[500px]': size.width < 500 || size.height < 500
+							'min-h-[350px] min-w-[350px]': size.width < 350 || size.height < 350
 						})}
 						contentClass="flex h-full flex-1 overflow-hidden w-full"
 					>
