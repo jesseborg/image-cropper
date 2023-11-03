@@ -11,8 +11,8 @@ function App() {
 	return (
 		<main>
 			<Background src={blobURL} />
-			<div className="flex h-screen items-center justify-center p-8 md:p-16 lg:p-32">
-				<Container className="max-h-[calc(100vh-32px)] max-w-[calc(100vw-32px)] overflow-hidden">
+			<div className="flex h-screen items-center justify-center p-8">
+				<Container className="max-h-[calc(100vh-32px*2)] max-w-[calc(100vw-32px)] overflow-hidden">
 					{stepIndex === 0 && (
 						<ImageUpload
 							onImageLoad={(blobURL) => {
@@ -95,7 +95,7 @@ function Background({ src }: { src: string }) {
 
 			{!!src && (
 				<img
-					className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2 scale-90 p-8 blur-3xl saturate-200 md:p-16 lg:p-32"
+					className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2 scale-90 p-8 blur-3xl saturate-200"
 					src={src}
 				/>
 			)}
