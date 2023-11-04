@@ -1,6 +1,15 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+
+import { animated, useSpring } from '@react-spring/web';
+import { useDrag } from '@use-gesture/react';
 import clsx from 'clsx';
-import { ComponentProps, SyntheticEvent, useCallback, useState } from 'react';
-import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
+import { ComponentProps, SyntheticEvent, useCallback, useEffect, useRef, useState } from 'react';
+import {
+	TransformComponent,
+	TransformWrapper,
+	useControls,
+	useTransformEffect
+} from 'react-zoom-pan-pinch';
 import { Button } from './button';
 
 type ImageEditorProps = {
@@ -33,11 +42,12 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 					doubleClick={{ disabled: true }}
 					panning={{ velocityDisabled: true, allowRightClickPan: false }}
 				>
+					<CropTool />
 					<TransformComponent
 						wrapperClass={clsx('relative rounded-lg border border-neutral-200 shadow-lg', {
 							'min-h-[350px] min-w-[350px]': size.width < 350 || size.height < 350
 						})}
-						contentClass="flex h-full flex-1 overflow-hidden w-full"
+						contentClass="flex z-0 h-full flex-1 overflow-hidden w-full"
 					>
 						<div className="flex max-h-full w-full items-center justify-center">
 							<img className="max-h-full" src={src} onLoad={handleImageLoad} />
@@ -58,6 +68,58 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 				</Button>
 			</div>
 		</div>
+	);
+}
+
+function CropTool() {
+	const { instance } = useControls();
+
+	const [scale, setScale] = useState(1);
+	useTransformEffect(({ state }) => setScale(state.scale));
+
+	const cropRef = useRef<HTMLDivElement>(null);
+
+	const [{ x, y }, api] = useSpring(() => ({ x: 0, y: 0 }));
+	const bind = useDrag(
+		({ offset: [dx, dy] }) => {
+			api.start({ x: dx, y: dy, immediate: true });
+		},
+		{
+			bounds: { current: instance.wrapperComponent },
+			from: () => [x.get(), y.get()]
+		}
+	);
+
+	useEffect(() => {
+		function keepCropToolInBounds() {
+			if (!cropRef.current || !instance.wrapperComponent) {
+				return;
+			}
+
+			const { width: parentWidth, height: parentHeight } =
+				instance.wrapperComponent.getBoundingClientRect();
+			const { width, height } = cropRef.current.getBoundingClientRect();
+
+			api.start({
+				x: x.get() + width > parentWidth ? parentWidth - width : x.get(),
+				y: y.get() + height > parentHeight ? parentHeight - height : y.get(),
+				immediate: true
+			});
+		}
+
+		window.addEventListener('resize', keepCropToolInBounds);
+		return () => window.removeEventListener('resize', keepCropToolInBounds);
+	}, []);
+
+	return (
+		<animated.div
+			{...bind()}
+			ref={cropRef}
+			style={{ x, y }}
+			className="absolute left-2 top-2 z-10 h-32 w-32 origin-top-left cursor-move touch-none bg-red-500 text-xs text-white"
+		>
+			<p className="select-none">{`x: ${x.get()} | y: ${y.get()} | s: ${scale}`}</p>
+		</animated.div>
 	);
 }
 
