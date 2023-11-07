@@ -148,26 +148,74 @@ function CropTool() {
 		},
 		{
 			drag: {
-				// bounds: () => {
-				// 	const containerElement = instance.contentComponent;
-				// 	const imageElement = containerElement?.querySelector('img');
-				// 	const containerRect = containerElement?.getBoundingClientRect();
+				bounds: (event) => {
+					const containerElement = instance.contentComponent;
+					const imageElement = containerElement?.querySelector('img');
+					const containerBounds = containerElement?.getBoundingClientRect();
 
-				// 	const cropRect = cropRef.current?.getBoundingClientRect();
+					const cropBounds = cropRef.current?.getBoundingClientRect();
 
-				// 	if (!imageElement || !containerElement || !containerRect || !cropRect) {
-				// 		return {};
-				// 	}
+					if (
+						!imageElement ||
+						!containerElement ||
+						!containerBounds ||
+						!cropBounds ||
+						!cropRef.current
+					) {
+						return {};
+					}
 
-				// 	const relativeImageRect = getRelativeBounds(containerElement, imageElement);
+					const relativeImageBounds = getRelativeBounds(containerElement, imageElement);
+					const relativeCropBounds = getRelativeBounds(containerElement, cropRef.current);
 
-				// 	return {
-				// 		top: Math.max(0, relativeImageRect.top),
-				// 		left: Math.max(0, relativeImageRect.left),
-				// 		right: Math.min(containerRect.width, relativeImageRect.right) - cropRect.width,
-				// 		bottom: Math.min(containerRect.height, relativeImageRect.bottom) - cropRect.height
-				// 	};
-				// },
+					const target = event?.target as HTMLDivElement;
+					const { id } = target.dataset;
+
+					switch (id) {
+						case 'top-left': {
+							return {
+								top: Math.max(0, relativeImageBounds.top),
+								left: Math.max(0, relativeImageBounds.left),
+								right: relativeCropBounds.right - 128,
+								bottom: relativeCropBounds.bottom - 128
+							};
+						}
+						case 'top-right': {
+							return {
+								top: Math.max(0, relativeImageBounds.top),
+								left: 128,
+								right: Math.min(containerBounds.width, relativeImageBounds.right) - x.get(),
+								bottom: relativeCropBounds.bottom - 128
+							};
+						}
+						case 'bottom-right': {
+							return {
+								top: 128,
+								left: 128,
+								right: Math.min(containerBounds.width, relativeImageBounds.right) - x.get(),
+								bottom: Math.min(containerBounds.height, relativeImageBounds.bottom) - y.get()
+							};
+						}
+						case 'bottom-left': {
+							return {
+								top: 128,
+								left: Math.max(0, relativeImageBounds.left),
+								right: relativeCropBounds.right - 128,
+								bottom: Math.min(containerBounds.height, relativeImageBounds.bottom) - y.get()
+							};
+						}
+						default: {
+							return {
+								top: Math.max(0, relativeImageBounds.top),
+								left: Math.max(0, relativeImageBounds.left),
+								right:
+									Math.min(containerBounds.width, relativeImageBounds.right) - cropBounds.width,
+								bottom:
+									Math.min(containerBounds.height, relativeImageBounds.bottom) - cropBounds.height
+							};
+						}
+					}
+				},
 				from: (event) => {
 					const target = event.target as HTMLDivElement;
 					const { id } = target.dataset;
@@ -190,8 +238,6 @@ function CropTool() {
 			}
 		}
 	);
-
-	// https://www.youtube.com/watch?v=vDxZLN6FVqY&list=WL&index=36&t=1647s
 
 	useEffect(() => {
 		function keepCropToolInBounds() {
