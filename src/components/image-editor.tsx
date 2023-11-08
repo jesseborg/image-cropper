@@ -164,6 +164,9 @@ function CropTool() {
 						return {};
 					}
 
+					const minSize =
+						128 / (imageElement.naturalWidth / imageElement.getBoundingClientRect().width);
+
 					const relativeImageBounds = getRelativeBounds(containerElement, imageElement);
 					const relativeCropBounds = getRelativeBounds(containerElement, cropRef.current);
 
@@ -175,31 +178,31 @@ function CropTool() {
 							return {
 								top: Math.max(0, relativeImageBounds.top),
 								left: Math.max(0, relativeImageBounds.left),
-								right: relativeCropBounds.right - 128,
-								bottom: relativeCropBounds.bottom - 128
+								right: relativeCropBounds.right - minSize,
+								bottom: relativeCropBounds.bottom - minSize
 							};
 						}
 						case 'top-right': {
 							return {
 								top: Math.max(0, relativeImageBounds.top),
-								left: 128,
+								left: minSize,
 								right: Math.min(containerBounds.width, relativeImageBounds.right) - x.get(),
-								bottom: relativeCropBounds.bottom - 128
+								bottom: relativeCropBounds.bottom - minSize
 							};
 						}
 						case 'bottom-right': {
 							return {
-								top: 128,
-								left: 128,
+								top: minSize,
+								left: minSize,
 								right: Math.min(containerBounds.width, relativeImageBounds.right) - x.get(),
 								bottom: Math.min(containerBounds.height, relativeImageBounds.bottom) - y.get()
 							};
 						}
 						case 'bottom-left': {
 							return {
-								top: 128,
+								top: minSize,
 								left: Math.max(0, relativeImageBounds.left),
-								right: relativeCropBounds.right - 128,
+								right: relativeCropBounds.right - minSize,
 								bottom: Math.min(containerBounds.height, relativeImageBounds.bottom) - y.get()
 							};
 						}
