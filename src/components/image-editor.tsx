@@ -152,7 +152,6 @@ function CropTool() {
 					const containerElement = instance.contentComponent;
 					const imageElement = containerElement?.querySelector('img');
 					const containerBounds = containerElement?.getBoundingClientRect();
-
 					const cropBounds = cropRef.current?.getBoundingClientRect();
 
 					if (
@@ -252,13 +251,10 @@ function CropTool() {
 
 			const relativeImageRect = getRelativeBounds(containerElement, imageElement);
 
-			const maxX = relativeImageRect.right - cropRect.width;
-			const maxY = relativeImageRect.bottom - cropRect.height;
-
-			const posX = clamp(x.get(), relativeImageRect.left, maxX);
-			const posY = clamp(y.get(), relativeImageRect.top, maxY);
-
-			api.start({ x: posX, y: posY, immediate: true });
+			api.set({
+				x: clamp(x.get(), relativeImageRect.left, relativeImageRect.right - cropRect.width),
+				y: clamp(y.get(), relativeImageRect.top, relativeImageRect.bottom - cropRect.height)
+			});
 		}
 
 		window.addEventListener('resize', keepCropToolInBounds);
