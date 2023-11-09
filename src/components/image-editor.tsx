@@ -5,20 +5,14 @@ import clsx from 'clsx';
 import {
 	CSSProperties,
 	ComponentProps,
+	RefObject,
 	SyntheticEvent,
 	useCallback,
 	useEffect,
 	useRef,
 	useState
 } from 'react';
-import {
-	TransformComponent,
-	TransformWrapper,
-	useControls,
-	useTransformEffect
-} from 'react-zoom-pan-pinch';
-import { clamp } from '../utils/clamp';
-import { getRelativeBounds } from '../utils/get-relative-bounds';
+import { TransformComponent, TransformWrapper, useTransformEffect } from 'react-zoom-pan-pinch';
 import { Button } from './button';
 
 type ImageEditorProps = {
@@ -28,15 +22,17 @@ type ImageEditorProps = {
 };
 
 export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
-	const [size, setSize] = useState({ width: 0, height: 0 });
+	const [size, setSize] = useState<{ width: number; height: number } | null>(null);
 
 	const handleImageLoad = useCallback(
 		(event: SyntheticEvent<HTMLImageElement, Event>) => {
-			const target = event.target as HTMLImageElement;
-			setSize({ width: target.naturalWidth, height: target.naturalHeight });
+			const { naturalWidth, naturalHeight } = event.target as HTMLImageElement;
+			setSize({ width: naturalWidth, height: naturalHeight });
 		},
 		[src]
 	);
+
+	const imageRef = useRef<HTMLImageElement>(null);
 
 	return (
 		<div className="flex flex-col gap-2">
@@ -46,8 +42,10 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 
 				{/* Pan & Zoom Canvas */}
 				<TransformWrapper
+					minScale={0.5}
 					centerZoomedOut
 					limitToBounds={false}
+					disablePadding={true}
 					doubleClick={{ disabled: true }}
 					panning={{
 						velocityDisabled: true,
@@ -57,19 +55,19 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 				>
 					<TransformComponent
 						wrapperClass={clsx('relative rounded-lg border border-neutral-200 shadow-lg', {
-							'min-h-[350px] min-w-[350px]': size.width < 350 || size.height < 350
+							'min-h-[350px] min-w-[350px]': size && (size.width < 350 || size.height < 350)
 						})}
 						contentClass="flex z-0 h-full flex-1 w-full"
 					>
-						<CropTool />
+						{Boolean(size) && <CropTool boundsRef={imageRef} />}
 						<div className="flex max-h-full w-full items-center justify-center">
-							<img className="max-h-full" src={src} onLoad={handleImageLoad} />
+							<img ref={imageRef} className="max-h-full" src={src} onLoad={handleImageLoad} />
 						</div>
 					</TransformComponent>
 				</TransformWrapper>
 
 				{/* Metadata & Controls */}
-				<Controls width={size.width} height={size.height} />
+				<Controls width={size?.width ?? 0} height={size?.height ?? 0} />
 			</div>
 
 			<div className="space-x-2 self-end">
@@ -84,36 +82,39 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 	);
 }
 
-function CropTool() {
-	const { instance } = useControls();
-
+type CropToolsProps = {
+	boundsRef: RefObject<HTMLImageElement>;
+};
+function CropTool({ boundsRef }: CropToolsProps) {
 	const [scale, setScale] = useState(1);
 	useTransformEffect(({ state }) => setScale(state.scale));
 
 	const cropRef = useRef<HTMLDivElement>(null);
 
-	const [{ x, y, width, height }, api] = useSpring(() => ({ x: 0, y: 0, width: 128, height: 128 }));
+	const MIN_SIZE = 128;
+	const [{ x, y, width, height }, api] = useSpring(() => ({
+		x: 0,
+		y: 0,
+		width: MIN_SIZE,
+		height: MIN_SIZE
+	}));
 
-	const [lastRect, setLastRect] = useState({
-		x: x.get(),
-		y: y.get(),
-		width: width.get(),
-		height: height.get()
-	});
+	const [boundsLeft, setBoundsLeft] = useState(boundsRef.current?.offsetLeft);
 
 	const bind = useGesture(
 		{
-			onDrag: ({ event, offset: [ox, oy], lastOffset: [lastX, lastY] }) => {
-				const target = event.target as HTMLDivElement;
-				const { id } = target.dataset;
+			onDrag: ({ event, offset: [ox, oy] }) => {
+				const {
+					dataset: { id }
+				} = event.target as HTMLDivElement;
 
 				switch (id) {
 					case 'top-left': {
 						api.set({
 							x: ox / scale,
 							y: oy / scale,
-							width: lastRect.width + (lastX - ox) / scale,
-							height: lastRect.height + (lastY - oy) / scale
+							width: x.get() + width.get() - ox / scale,
+							height: y.get() + height.get() - oy / scale
 						});
 						return;
 					}
@@ -121,7 +122,7 @@ function CropTool() {
 						api.set({
 							y: oy / scale,
 							width: ox / scale,
-							height: lastRect.height + (lastY - oy) / scale
+							height: y.get() + height.get() - oy / scale
 						});
 						return;
 					}
@@ -132,7 +133,7 @@ function CropTool() {
 					case 'bottom-left': {
 						api.set({
 							x: ox / scale,
-							width: lastRect.width + (lastX - ox) / scale,
+							width: x.get() + width.get() - ox / scale,
 							height: oy / scale
 						});
 						return;
@@ -141,86 +142,80 @@ function CropTool() {
 						api.set({ x: ox / scale, y: oy / scale });
 					}
 				}
-			},
-			onDragEnd: () => {
-				setLastRect({ x: x.get(), y: y.get(), width: width.get(), height: height.get() });
 			}
 		},
 		{
 			drag: {
+				filterTaps: true,
 				bounds: (event) => {
-					const containerElement = instance.contentComponent;
-					const imageElement = containerElement?.querySelector('img');
-					const containerBounds = containerElement?.getBoundingClientRect();
-					const cropBounds = cropRef.current?.getBoundingClientRect();
-
-					if (
-						!imageElement ||
-						!containerElement ||
-						!containerBounds ||
-						!cropBounds ||
-						!cropRef.current
-					) {
+					if (!boundsRef.current) {
 						return {};
 					}
 
-					const minSize =
-						128 / (imageElement.naturalWidth / imageElement.getBoundingClientRect().width);
+					// This is the scale factor from the original image to whats rendered on the screen
+					const boundsScaleFactor =
+						boundsRef.current.naturalWidth / boundsRef.current.getBoundingClientRect().width;
+					const minSize = MIN_SIZE / boundsScaleFactor;
 
-					const relativeImageBounds = getRelativeBounds(containerElement, imageElement);
-					const relativeCropBounds = getRelativeBounds(containerElement, cropRef.current);
+					const boundsRect = boundsRef.current.getBoundingClientRect();
+					const cropRect = {
+						top: y.get() * scale,
+						left: x.get() * scale,
+						right: (x.get() + width.get()) * scale,
+						bottom: (y.get() + height.get()) * scale
+					};
 
-					const target = event?.target as HTMLDivElement;
-					const { id } = target.dataset;
+					const {
+						dataset: { id }
+					} = event?.target as HTMLDivElement;
 
 					switch (id) {
 						case 'top-left': {
 							return {
-								top: Math.max(0, relativeImageBounds.top),
-								left: Math.max(0, relativeImageBounds.left),
-								right: relativeCropBounds.right - minSize,
-								bottom: relativeCropBounds.bottom - minSize
+								top: 0,
+								left: 0,
+								right: cropRect.right - minSize,
+								bottom: cropRect.bottom - minSize
 							};
 						}
 						case 'top-right': {
 							return {
-								top: Math.max(0, relativeImageBounds.top),
+								top: 0,
 								left: minSize,
-								right: Math.min(containerBounds.width, relativeImageBounds.right) - x.get(),
-								bottom: relativeCropBounds.bottom - minSize
+								right: boundsRect.width - cropRect.left,
+								bottom: cropRect.bottom - minSize
 							};
 						}
 						case 'bottom-right': {
 							return {
 								top: minSize,
 								left: minSize,
-								right: Math.min(containerBounds.width, relativeImageBounds.right) - x.get(),
-								bottom: Math.min(containerBounds.height, relativeImageBounds.bottom) - y.get()
+								right: boundsRect.width - cropRect.left,
+								bottom: boundsRect.height - cropRect.top
 							};
 						}
 						case 'bottom-left': {
 							return {
 								top: minSize,
-								left: Math.max(0, relativeImageBounds.left),
-								right: relativeCropBounds.right - minSize,
-								bottom: Math.min(containerBounds.height, relativeImageBounds.bottom) - y.get()
+								left: 0,
+								right: cropRect.right - minSize,
+								bottom: boundsRect.height - cropRect.top
 							};
 						}
 						default: {
 							return {
-								top: Math.max(0, relativeImageBounds.top),
-								left: Math.max(0, relativeImageBounds.left),
-								right:
-									Math.min(containerBounds.width, relativeImageBounds.right) - cropBounds.width,
-								bottom:
-									Math.min(containerBounds.height, relativeImageBounds.bottom) - cropBounds.height
+								top: 0,
+								left: 0,
+								right: boundsRect.width - width.get() * scale,
+								bottom: boundsRect.height - height.get() * scale
 							};
 						}
 					}
 				},
 				from: (event) => {
-					const target = event.target as HTMLDivElement;
-					const { id } = target.dataset;
+					const {
+						dataset: { id }
+					} = event.target as HTMLDivElement;
 
 					switch (id) {
 						case 'top-right': {
@@ -242,26 +237,29 @@ function CropTool() {
 	);
 
 	useEffect(() => {
+		if (!boundsRef.current) {
+			return;
+		}
+
 		function keepCropToolInBounds() {
-			const containerElement = instance.contentComponent;
-			const imageElement = containerElement?.querySelector('img');
+			setBoundsLeft(boundsRef.current?.offsetLeft ?? 0);
+			// const relativeBoundsRect = getRelativeBounds(containerElement, boundsRef.current);
+			// console.log(relativeBoundsRect.left);
+			// setBoundsLeft(relativeBoundsRect.left);
 
-			const cropRect = cropRef.current?.getBoundingClientRect();
+			// const relativeImageRect = getRelativeBounds(containerElement, imageElement);
 
-			if (!imageElement || !containerElement || !cropRect) {
-				return;
-			}
-
-			const relativeImageRect = getRelativeBounds(containerElement, imageElement);
-
-			api.set({
-				x: clamp(x.get(), relativeImageRect.left, relativeImageRect.right - cropRect.width),
-				y: clamp(y.get(), relativeImageRect.top, relativeImageRect.bottom - cropRect.height)
-			});
+			// api.set({
+			// 	x: clamp(x.get(), relativeImageRect.left, relativeImageRect.right - cropRect.width),
+			// 	y: clamp(y.get(), relativeImageRect.top, relativeImageRect.bottom - cropRect.height)
+			// });
 		}
 
 		window.addEventListener('resize', keepCropToolInBounds);
-		return () => window.removeEventListener('resize', keepCropToolInBounds);
+
+		return () => {
+			window.removeEventListener('resize', keepCropToolInBounds);
+		};
 	}, []);
 
 	// TODO: CropTool shadow needs to be clipped to the image
@@ -270,13 +268,14 @@ function CropTool() {
 			{...bind()}
 			ref={cropRef}
 			style={{
-				x: x.to(Math.round),
+				x: x.to((x) => Math.round(x + (boundsLeft ?? 0))),
 				y: y.to(Math.round),
 				width: width.to(Math.round),
 				height: height.to(Math.round)
 			}}
 			className="fixed z-10 box-content cursor-move touch-none text-xs text-white shadow-[0px_0px_0px_20000px_rgba(0,_0,_0,_0.50)]"
 		>
+			<div className="absolute">x: {x.get()}</div>
 			<svg className="absolute h-full w-full overflow-visible">
 				<g className="stroke-neutral-300" strokeWidth={2 / scale}>
 					<line x1="0" y1="0" x2="100%" y2="0" />
