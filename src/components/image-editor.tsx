@@ -24,6 +24,9 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 	const [crop, setCrop] = useState<Rect>({ x: 0, y: 0, width: 0, height: 0 });
 
 	const imageRef = useRef<HTMLImageElement>(null);
+	const imageTooSmall =
+		imageRef.current &&
+		(imageRef.current.naturalWidth < 350 || imageRef.current.naturalHeight < 350);
 
 	return (
 		<div className="flex flex-col gap-2">
@@ -46,17 +49,17 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 				>
 					<TransformComponent
 						wrapperClass={clsx(
-							'relative rounded-lg border border-neutral-200 shadow-lg flex items-center justify-center',
+							'relative rounded-lg w-full border border-neutral-200 shadow-lg flex items-center justify-center',
 							{
-								'min-h-[350px] min-w-[350px] !block':
-									imageRef.current &&
-									(imageRef.current.naturalWidth < 350 || imageRef.current.naturalHeight < 350)
+								'min-h-[350px] min-w-[350px] !block': imageTooSmall
 							}
 						)}
-						contentClass="z-0 overflow-hidden"
+						contentClass={clsx('z-0 overflow-hidden h-full', {
+							'h-auto': imageTooSmall
+						})}
 					>
 						{!isLoading && <CropTool boundsRef={imageRef} onChange={setCrop} />}
-						<div className="flex max-h-full w-full items-center justify-center">
+						<div className="contents max-h-full w-full items-center justify-center">
 							<img
 								ref={imageRef}
 								className="max-h-full"
