@@ -57,10 +57,11 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 						wrapperClass={clsx(
 							'relative rounded-lg border border-neutral-200 shadow-lg flex items-center justify-center',
 							{
-								'min-h-[350px] min-w-[350px]': size && (size.width < 350 || size.height < 350)
+								'min-h-[350px] min-w-[350px] !block':
+									size && (size.width < 350 || size.height < 350)
 							}
 						)}
-						contentClass="flex z-0 overflow-hidden"
+						contentClass="z-0 overflow-hidden"
 					>
 						{Boolean(size) && <CropTool boundsRef={imageRef} />}
 						<div className="flex max-h-full w-full items-center justify-center">
@@ -272,7 +273,7 @@ function CropTool({ boundsRef }: CropToolsProps) {
 			}}
 			className="fixed z-10 box-content cursor-move touch-none text-xs text-white shadow-[0px_0px_0px_20000px_rgba(0,_0,_0,_0.50)]"
 		>
-			<div className="absolute">x: {x.get()}</div>
+			{/* <div className="absolute">x: {x.get()}</div> */}
 			<svg className="absolute h-full w-full overflow-visible">
 				<g className="stroke-neutral-300" strokeWidth={2 / scale}>
 					<line x1="0" y1="0" x2="100%" y2="0" />
