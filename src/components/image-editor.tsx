@@ -180,7 +180,7 @@ function CropTool({ boundsRef, onChange }: CropToolsProps) {
 
 					const minSize =
 						MIN_SIZE /
-						(boundsRef.current!.naturalWidth / boundsRef.current!.getBoundingClientRect().width);
+						(boundsRef.current.naturalWidth / boundsRef.current.getBoundingClientRect().width);
 
 					const boundsRect = boundsRef.current.getBoundingClientRect();
 					const cropRect = {
