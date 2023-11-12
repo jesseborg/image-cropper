@@ -54,10 +54,13 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 					}}
 				>
 					<TransformComponent
-						wrapperClass={clsx('relative rounded-lg border border-neutral-200 shadow-lg', {
-							'min-h-[350px] min-w-[350px]': size && (size.width < 350 || size.height < 350)
-						})}
-						contentClass="flex z-0 h-full flex-1 w-full"
+						wrapperClass={clsx(
+							'relative rounded-lg border border-neutral-200 shadow-lg flex items-center justify-center',
+							{
+								'min-h-[350px] min-w-[350px]': size && (size.width < 350 || size.height < 350)
+							}
+						)}
+						contentClass="flex z-0 overflow-hidden"
 					>
 						{Boolean(size) && <CropTool boundsRef={imageRef} />}
 						<div className="flex max-h-full w-full items-center justify-center">
@@ -98,8 +101,6 @@ function CropTool({ boundsRef }: CropToolsProps) {
 		width: MIN_SIZE,
 		height: MIN_SIZE
 	}));
-
-	const [boundsLeft, setBoundsLeft] = useState(boundsRef.current?.offsetLeft);
 
 	const bind = useGesture(
 		{
@@ -242,13 +243,10 @@ function CropTool({ boundsRef }: CropToolsProps) {
 		}
 
 		function keepCropToolInBounds() {
-			setBoundsLeft(boundsRef.current?.offsetLeft ?? 0);
 			// const relativeBoundsRect = getRelativeBounds(containerElement, boundsRef.current);
 			// console.log(relativeBoundsRect.left);
 			// setBoundsLeft(relativeBoundsRect.left);
-
 			// const relativeImageRect = getRelativeBounds(containerElement, imageElement);
-
 			// api.set({
 			// 	x: clamp(x.get(), relativeImageRect.left, relativeImageRect.right - cropRect.width),
 			// 	y: clamp(y.get(), relativeImageRect.top, relativeImageRect.bottom - cropRect.height)
@@ -262,13 +260,12 @@ function CropTool({ boundsRef }: CropToolsProps) {
 		};
 	}, []);
 
-	// TODO: CropTool shadow needs to be clipped to the image
 	return (
 		<animated.div
 			{...bind()}
 			ref={cropRef}
 			style={{
-				x: x.to((x) => Math.round(x + (boundsLeft ?? 0))),
+				x: x.to(Math.round),
 				y: y.to(Math.round),
 				width: width.to(Math.round),
 				height: height.to(Math.round)
