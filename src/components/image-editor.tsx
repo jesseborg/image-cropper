@@ -2,16 +2,7 @@
 import { animated, useSpring } from '@react-spring/web';
 import { useGesture } from '@use-gesture/react';
 import clsx from 'clsx';
-import {
-	CSSProperties,
-	ComponentProps,
-	RefObject,
-	SyntheticEvent,
-	useCallback,
-	useEffect,
-	useRef,
-	useState
-} from 'react';
+import { CSSProperties, ComponentProps, RefObject, useEffect, useRef, useState } from 'react';
 import { TransformComponent, TransformWrapper, useTransformEffect } from 'react-zoom-pan-pinch';
 import { Button } from './button';
 
@@ -21,16 +12,16 @@ type ImageEditorProps = {
 	onConfirm?: () => void;
 };
 
-export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
-	const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+type Rect = {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+};
 
-	const handleImageLoad = useCallback(
-		(event: SyntheticEvent<HTMLImageElement, Event>) => {
-			const { naturalWidth, naturalHeight } = event.target as HTMLImageElement;
-			setSize({ width: naturalWidth, height: naturalHeight });
-		},
-		[src]
-	);
+export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
+	const [isLoading, setIsLoading] = useState(true);
+	const [crop, setCrop] = useState<Rect>({ x: 0, y: 0, width: 0, height: 0 });
 
 	const imageRef = useRef<HTMLImageElement>(null);
 
@@ -58,20 +49,26 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 							'relative rounded-lg border border-neutral-200 shadow-lg flex items-center justify-center',
 							{
 								'min-h-[350px] min-w-[350px] !block':
-									size && (size.width < 350 || size.height < 350)
+									imageRef.current &&
+									(imageRef.current.naturalWidth < 350 || imageRef.current.naturalHeight < 350)
 							}
 						)}
 						contentClass="z-0 overflow-hidden"
 					>
-						{Boolean(size) && <CropTool boundsRef={imageRef} />}
+						{!isLoading && <CropTool boundsRef={imageRef} onChange={setCrop} />}
 						<div className="flex max-h-full w-full items-center justify-center">
-							<img ref={imageRef} className="max-h-full" src={src} onLoad={handleImageLoad} />
+							<img
+								ref={imageRef}
+								className="max-h-full"
+								src={src}
+								onLoad={() => setIsLoading(false)}
+							/>
 						</div>
 					</TransformComponent>
 				</TransformWrapper>
 
 				{/* Metadata & Controls */}
-				<Controls width={size?.width ?? 0} height={size?.height ?? 0} />
+				<Controls crop={crop} />
 			</div>
 
 			<div className="space-x-2 self-end">
@@ -88,20 +85,33 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 
 type CropToolsProps = {
 	boundsRef: RefObject<HTMLImageElement>;
+	onChange?: (value: Rect) => void;
 };
-function CropTool({ boundsRef }: CropToolsProps) {
+function CropTool({ boundsRef, onChange }: CropToolsProps) {
 	const [scale, setScale] = useState(1);
 	useTransformEffect(({ state }) => setScale(state.scale));
 
 	const cropRef = useRef<HTMLDivElement>(null);
 
+	// This is the scale factor from the original image to whats rendered on the screen
+	const boundsScaleFactor = boundsRef.current!.naturalWidth / boundsRef.current!.clientWidth;
 	const MIN_SIZE = 128;
+
 	const [{ x, y, width, height }, api] = useSpring(() => ({
 		x: 0,
 		y: 0,
-		width: MIN_SIZE,
-		height: MIN_SIZE
+		width: MIN_SIZE / boundsScaleFactor,
+		height: MIN_SIZE / boundsScaleFactor
 	}));
+
+	function convertToOriginalCoordinates(rect: Rect) {
+		return {
+			x: Math.round(rect.x * boundsScaleFactor),
+			y: Math.round(rect.y * boundsScaleFactor),
+			width: Math.round(rect.width * boundsScaleFactor),
+			height: Math.round(rect.height * boundsScaleFactor)
+		};
+	}
 
 	const bind = useGesture(
 		{
@@ -118,7 +128,7 @@ function CropTool({ boundsRef }: CropToolsProps) {
 							width: x.get() + width.get() - ox / scale,
 							height: y.get() + height.get() - oy / scale
 						});
-						return;
+						break;
 					}
 					case 'top-right': {
 						api.set({
@@ -126,11 +136,11 @@ function CropTool({ boundsRef }: CropToolsProps) {
 							width: ox / scale,
 							height: y.get() + height.get() - oy / scale
 						});
-						return;
+						break;
 					}
 					case 'bottom-right': {
 						api.set({ width: ox / scale, height: oy / scale });
-						return;
+						break;
 					}
 					case 'bottom-left': {
 						api.set({
@@ -138,12 +148,23 @@ function CropTool({ boundsRef }: CropToolsProps) {
 							width: x.get() + width.get() - ox / scale,
 							height: oy / scale
 						});
-						return;
+						break;
 					}
 					default: {
 						api.set({ x: ox / scale, y: oy / scale });
+						break;
 					}
 				}
+
+				// handle onchange event
+				onChange?.(
+					convertToOriginalCoordinates({
+						x: x.get(),
+						y: y.get(),
+						width: width.get(),
+						height: height.get()
+					})
+				);
 			}
 		},
 		{
@@ -154,10 +175,9 @@ function CropTool({ boundsRef }: CropToolsProps) {
 						return {};
 					}
 
-					// This is the scale factor from the original image to whats rendered on the screen
-					const boundsScaleFactor =
-						boundsRef.current.naturalWidth / boundsRef.current.getBoundingClientRect().width;
-					const minSize = MIN_SIZE / boundsScaleFactor;
+					const minSize =
+						MIN_SIZE /
+						(boundsRef.current!.naturalWidth / boundsRef.current!.getBoundingClientRect().width);
 
 					const boundsRect = boundsRef.current.getBoundingClientRect();
 					const cropRect = {
@@ -243,6 +263,15 @@ function CropTool({ boundsRef }: CropToolsProps) {
 			return;
 		}
 
+		onChange?.(
+			convertToOriginalCoordinates({
+				x: x.get(),
+				y: y.get(),
+				width: width.get(),
+				height: height.get()
+			})
+		);
+
 		function keepCropToolInBounds() {
 			// const relativeBoundsRect = getRelativeBounds(containerElement, boundsRef.current);
 			// console.log(relativeBoundsRect.left);
@@ -268,18 +297,15 @@ function CropTool({ boundsRef }: CropToolsProps) {
 			style={{
 				x: x.to(Math.round),
 				y: y.to(Math.round),
-				width: width.to(Math.round),
-				height: height.to(Math.round)
+				// +2px for border
+				width: width.to((val) => 2 + Math.round(val)),
+				height: height.to((val) => 2 + Math.round(val))
 			}}
 			className="fixed z-10 box-content cursor-move touch-none text-xs text-white shadow-[0px_0px_0px_20000px_rgba(0,_0,_0,_0.50)]"
 		>
-			{/* <div className="absolute">x: {x.get()}</div> */}
 			<svg className="absolute h-full w-full overflow-visible">
 				<g className="stroke-neutral-300" strokeWidth={2 / scale}>
-					<line x1="0" y1="0" x2="100%" y2="0" />
-					<line x1="100%" y1="0" x2="100%" y2="100%" />
-					<line x1="100%" y1="100%" x2="0" y2="100%" />
-					<line x1="0" y1="100%" x2="0" y2="0" />
+					<rect id="ld" x="0" y="0" width="100%" height="100%" fill="none" />
 				</g>
 
 				<g
@@ -304,21 +330,27 @@ function CropTool({ boundsRef }: CropToolsProps) {
 }
 
 type ControlsProps = {
-	width: number;
-	height: number;
+	crop: Rect;
 };
-
-function Controls({ width, height }: ControlsProps) {
+function Controls({ crop }: ControlsProps) {
 	return (
 		<div className="relative rounded-lg border border-neutral-400 bg-white p-2">
 			<div className="flex gap-2 text-xs">
 				<p className="font-medium text-neutral-600">
+					<b className="pr-1 text-neutral-950">X:</b>
+					{crop.x}
+				</p>
+				<p className="font-medium text-neutral-600">
+					<b className="pr-1 text-neutral-950">Y:</b>
+					{crop.y}
+				</p>
+				<p className="font-medium text-neutral-600">
 					<b className="pr-1 text-neutral-950">W:</b>
-					{width}
+					{crop.width}
 				</p>
 				<p className="font-medium text-neutral-600">
 					<b className="pr-1 text-neutral-950">H:</b>
-					{height}
+					{crop.height}
 				</p>
 			</div>
 		</div>
