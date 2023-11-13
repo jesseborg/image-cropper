@@ -4,6 +4,7 @@ import { useGesture } from '@use-gesture/react';
 import clsx from 'clsx';
 import { CSSProperties, ComponentProps, RefObject, useEffect, useRef, useState } from 'react';
 import { TransformComponent, TransformWrapper, useTransformEffect } from 'react-zoom-pan-pinch';
+import { useCropActions, useCropRect, type Rect } from '../stores/editor';
 import { Button } from './button';
 
 type ImageEditorProps = {
@@ -12,16 +13,11 @@ type ImageEditorProps = {
 	onConfirm?: () => void;
 };
 
-type Rect = {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-};
-
 export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
+	const crop = useCropRect();
+	const { setCropRect } = useCropActions();
+
 	const [isLoading, setIsLoading] = useState(true);
-	const [crop, setCrop] = useState<Rect>({ x: 0, y: 0, width: 0, height: 0 });
 
 	const imageRef = useRef<HTMLImageElement>(null);
 	const imageTooSmall =
@@ -58,7 +54,7 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 							'h-auto': imageTooSmall
 						})}
 					>
-						{!isLoading && <CropTool boundsRef={imageRef} onChange={setCrop} />}
+						{!isLoading && <CropTool boundsRef={imageRef} onChange={setCropRect} />}
 						<div className="contents max-h-full w-full items-center justify-center">
 							<img
 								ref={imageRef}
@@ -71,7 +67,7 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 				</TransformWrapper>
 
 				{/* Metadata & Controls */}
-				<Controls crop={crop} />
+				<CropControls crop={crop} />
 			</div>
 
 			<div className="space-x-2 self-end">
@@ -335,7 +331,7 @@ function CropTool({ boundsRef, onChange }: CropToolsProps) {
 type ControlsProps = {
 	crop: Rect;
 };
-function Controls({ crop }: ControlsProps) {
+function CropControls({ crop }: ControlsProps) {
 	return (
 		<div className="relative rounded-lg border border-neutral-400 bg-white p-2">
 			<div className="flex gap-2 text-xs">
