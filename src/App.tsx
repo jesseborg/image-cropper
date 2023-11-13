@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import {} from 'react-zoom-pan-pinch';
 import { Container } from './components/container';
+import { ImageDownload } from './components/image-download';
 import { ImageEditor } from './components/image-editor';
 import { ImageUpload } from './components/image-upload';
+import { useCroppedImage } from './stores/editor';
 
 function App() {
 	const [blobURL, setBlobURL] = useState('');
@@ -35,8 +37,12 @@ function App() {
 								});
 								setStepIndex(0);
 							}}
+							onConfirm={() => {
+								setStepIndex(2);
+							}}
 						/>
 					)}
+					{stepIndex === 2 && <ImageDownload onCancel={() => setStepIndex(1)} />}
 				</Container>
 			</div>
 		</main>
@@ -44,6 +50,8 @@ function App() {
 }
 
 function Background({ src }: { src: string }) {
+	const backgroundImage = useCroppedImage() ?? src;
+
 	return (
 		<div className="pointer-events-none absolute inset-0 overflow-hidden">
 			{/* Noise Filter */}
@@ -93,10 +101,10 @@ function Background({ src }: { src: string }) {
 				</>
 			)}
 
-			{!!src && (
+			{Boolean(backgroundImage) && (
 				<img
 					className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2 scale-90 p-8 blur-3xl saturate-200"
-					src={src}
+					src={backgroundImage}
 				/>
 			)}
 		</div>

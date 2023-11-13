@@ -15,7 +15,7 @@ type ImageEditorProps = {
 
 export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 	const crop = useCropRect();
-	const { setCropRect } = useCropActions();
+	const { setCropRect, setCroppedImage, resetCropState } = useCropActions();
 
 	const [isLoading, setIsLoading] = useState(true);
 
@@ -23,6 +23,44 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 	const imageTooSmall =
 		imageRef.current &&
 		(imageRef.current.naturalWidth < 350 || imageRef.current.naturalHeight < 350);
+
+	function handleCancelCrop() {
+		resetCropState();
+		onCancel?.();
+	}
+
+	function handleCropImage() {
+		const canvas = document.createElement('canvas');
+		const ctx = canvas.getContext('2d');
+
+		if (!ctx || !imageRef.current) {
+			return;
+		}
+
+		ctx.canvas.width = crop.width;
+		ctx.canvas.height = crop.height;
+
+		ctx.drawImage(
+			imageRef.current,
+			crop.x,
+			crop.y,
+			crop.width,
+			crop.height,
+			0,
+			0,
+			crop.width,
+			crop.height
+		);
+
+		canvas.toBlob((blob) => {
+			if (!blob) {
+				return;
+			}
+
+			setCroppedImage(URL.createObjectURL(blob));
+			onConfirm?.();
+		});
+	}
 
 	return (
 		<div className="flex flex-col gap-2">
@@ -54,7 +92,9 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 							'h-auto': imageTooSmall
 						})}
 					>
-						{!isLoading && <CropTool boundsRef={imageRef} onChange={setCropRect} />}
+						{!isLoading && (
+							<CropTool initialCrop={crop} boundsRef={imageRef} onChange={setCropRect} />
+						)}
 						<div className="contents max-h-full w-full items-center justify-center">
 							<img
 								ref={imageRef}
@@ -71,10 +111,10 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 			</div>
 
 			<div className="space-x-2 self-end">
-				<Button intent="secondary" onClick={() => onCancel?.()}>
+				<Button intent="secondary" onClick={handleCancelCrop}>
 					Cancel
 				</Button>
-				<Button intent="primary" onClick={() => onConfirm?.()}>
+				<Button intent="primary" onClick={handleCropImage}>
 					Crop
 				</Button>
 			</div>
@@ -83,10 +123,11 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 }
 
 type CropToolsProps = {
+	initialCrop: Rect;
 	boundsRef: RefObject<HTMLImageElement>;
 	onChange?: (value: Rect) => void;
 };
-function CropTool({ boundsRef, onChange }: CropToolsProps) {
+function CropTool({ initialCrop, boundsRef, onChange }: CropToolsProps) {
 	const [scale, setScale] = useState(1);
 	useTransformEffect(({ state }) => setScale(state.scale));
 
@@ -97,10 +138,10 @@ function CropTool({ boundsRef, onChange }: CropToolsProps) {
 	const MIN_SIZE = 128;
 
 	const [{ x, y, width, height }, api] = useSpring(() => ({
-		x: 0,
-		y: 0,
-		width: MIN_SIZE / boundsScaleFactor,
-		height: MIN_SIZE / boundsScaleFactor
+		x: initialCrop.x / boundsScaleFactor,
+		y: initialCrop.y / boundsScaleFactor,
+		width: initialCrop.width / boundsScaleFactor,
+		height: initialCrop.height / boundsScaleFactor
 	}));
 
 	function convertToOriginalCoordinates(rect: Rect) {

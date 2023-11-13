@@ -7,30 +7,38 @@ export type Rect = {
 	height: number;
 };
 
-interface EditorStore {
-	originalImage: HTMLImageElement | null;
-	croppedImage: HTMLImageElement | null;
+type EditorState = {
+	croppedImage: string | null;
 	cropRect: Rect;
+};
+interface EditorStore extends EditorState {
 	actions: {
 		setCropRect: (crop: Rect) => void;
+		setCroppedImage: (image: string) => void;
+		removeCroppedImage: () => void;
+		resetCropState: () => void;
 	};
 }
 
-const useEditorStore = create<EditorStore>((set) => ({
-	originalImage: null,
+const intitialState: EditorState = {
 	croppedImage: null,
-	cropRect: {
-		x: 0,
-		y: 0,
-		width: 128,
-		height: 128
-	},
+	cropRect: { x: 0, y: 0, width: 128, height: 128 }
+};
+
+const useEditorStore = create<EditorStore>((set) => ({
+	...intitialState,
 	actions: {
-		setCropRect: (crop: Rect) => set(() => ({ cropRect: crop }))
+		setCropRect: (crop: Rect) => set(() => ({ cropRect: crop })),
+		setCroppedImage: (image: string) => set(() => ({ croppedImage: image })),
+		removeCroppedImage: () =>
+			set((state) => {
+				URL.revokeObjectURL(state.croppedImage!);
+				return { croppedImage: null };
+			}),
+		resetCropState: () => set(() => intitialState)
 	}
 }));
 
 export const useCropRect = () => useEditorStore((state) => state.cropRect);
-export const useOriginalImage = () => useEditorStore((state) => state.originalImage);
 export const useCroppedImage = () => useEditorStore((state) => state.croppedImage);
 export const useCropActions = () => useEditorStore((state) => state.actions);
