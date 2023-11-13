@@ -40,7 +40,7 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 					panning={{
 						velocityDisabled: true,
 						allowRightClickPan: false,
-						excluded: ['panning-none', 'line', 'svg', 'circle', 'g']
+						excluded: ['panning-none', 'rect', 'line', 'svg', 'circle', 'g']
 					}}
 				>
 					<TransformComponent
