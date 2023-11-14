@@ -88,7 +88,7 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 								'min-h-[350px] min-w-[350px] !block': imageTooSmall
 							}
 						)}
-						contentClass={clsx('z-0 overflow-hidden h-full', {
+						contentClass={clsx('z-0 h-full', {
 							'!h-auto': imageTooSmall
 						})}
 					>
@@ -331,41 +331,59 @@ function CropTool({ initialCrop, boundsRef, onChange }: CropToolsProps) {
 	}, []);
 
 	return (
-		<animated.div
-			{...bind()}
-			ref={cropRef}
-			style={{
-				x: x.to(Math.round),
-				y: y.to(Math.round),
-				// +2px for border
-				width: width.to((val) => 2 + Math.round(val)),
-				height: height.to((val) => 2 + Math.round(val))
-			}}
-			className="fixed z-10 box-content cursor-move touch-none text-xs text-white shadow-[0px_0px_0px_20000px_rgba(0,_0,_0,_0.50)]"
-		>
-			<svg className="absolute h-full w-full overflow-visible">
-				<g className="stroke-neutral-300" strokeWidth={2 / scale}>
-					<rect id="ld" x="0" y="0" width="100%" height="100%" fill="none" />
-				</g>
+		<div>
+			<animated.div
+				{...bind()}
+				ref={cropRef}
+				style={{
+					x: x.to(Math.round),
+					y: y.to(Math.round),
+					// +2px for border
+					width: width.to((val) => Math.round(val) + 2),
+					height: height.to((val) => Math.round(val) + 2)
+				}}
+				className="absolute z-10 cursor-move touch-none"
+			>
+				<svg className="absolute h-full w-full overflow-visible">
+					<g className="stroke-neutral-300" strokeWidth={2 / scale}>
+						<rect id="ld" x="0" y="0" width="100%" height="100%" fill="none" />
+					</g>
+					<g
+						style={{ r: 6 / scale } as CSSProperties}
+						className="fill-neutral-50 [r:6] [&>circle]:[r:inherit]"
+					>
+						<circle data-id="top-left" className="cursor-nw-resize" cx="0" cy="0" />
+						<circle data-id="top-right" className="cursor-ne-resize" cx="100%" cy="0" />
+						<circle data-id="bottom-right" className="cursor-nw-resize" cx="100%" cy="100%" />
+						<circle data-id="bottom-left" className="cursor-ne-resize" cx="0" cy="100%" />
+					</g>
+					<g className="stroke-white opacity-30" strokeWidth={2 / scale}>
+						<line x1="33.33%" y1="0" x2="33.33%" y2="100%" />
+						<line x1="66.66%" y1="0" x2="66.66%" y2="100%" />
+						<line x1="0" y1="33.33%" x2="100%" y2="33.33%" />
+						<line x1="0" y1="66.66%" x2="100%" y2="66.66%" />
+					</g>
+				</svg>
+			</animated.div>
 
-				<g
-					style={{ r: 6 / scale } as CSSProperties}
-					className="fill-neutral-50 [r:6] [&>circle]:[r:inherit]"
-				>
-					<circle data-id="top-left" className="cursor-nw-resize" cx="0" cy="0" />
-					<circle data-id="top-right" className="cursor-ne-resize" cx="100%" cy="0" />
-					<circle data-id="bottom-right" className="cursor-nw-resize" cx="100%" cy="100%" />
-					<circle data-id="bottom-left" className="cursor-ne-resize" cx="0" cy="100%" />
-				</g>
+			{/* Shadow */}
+			<svg id="crop-shadow" className="pointer-events-none absolute h-full w-full">
+				<defs>
+					<mask id="crop">
+						<rect x="0" y="0" width="100%" height="100%" fill="white" />
+						<rect
+							x={Math.round(x.get())}
+							y={Math.round(y.get())}
+							width={Math.round(width.get() + 2)}
+							height={Math.round(height.get() + 2)}
+							fill="black"
+						/>
+					</mask>
+				</defs>
 
-				<g className="stroke-white opacity-30" strokeWidth={2 / scale}>
-					<line x1="33.33%" y1="0" x2="33.33%" y2="100%" />
-					<line x1="66.66%" y1="0" x2="66.66%" y2="100%" />
-					<line x1="0" y1="33.33%" x2="100%" y2="33.33%" />
-					<line x1="0" y1="66.66%" x2="100%" y2="66.66%" />
-				</g>
+				<rect className="h-full w-full fill-black/50" mask="url(#crop)" />
 			</svg>
-		</animated.div>
+		</div>
 	);
 }
 
