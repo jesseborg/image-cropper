@@ -89,7 +89,7 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 							}
 						)}
 						contentClass={clsx('z-0 overflow-hidden h-full', {
-							'h-auto': imageTooSmall
+							'!h-auto': imageTooSmall
 						})}
 					>
 						{!isLoading && (
