@@ -16,7 +16,16 @@ export function ImageDownload({ onCancel }: ImageDownloadProps) {
 	}
 
 	function handleDownloadImage(event: MouseEvent) {
-		console.log(event.target);
+		event.preventDefault();
+
+		if (!croppedImage) {
+			return;
+		}
+
+		const link = document.createElement('a');
+		link.download = `cropped_${width}x${height}.png`;
+		link.href = croppedImage;
+		link.click();
 	}
 
 	return (
