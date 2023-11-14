@@ -346,7 +346,7 @@ function CropTool({ initialCrop, boundsRef, onChange }: CropToolsProps) {
 			>
 				<svg className="absolute h-full w-full overflow-visible">
 					<g className="stroke-neutral-300" strokeWidth={2 / scale}>
-						<rect id="ld" x="0" y="0" width="100%" height="100%" fill="none" />
+						<rect x="0" y="0" width="100%" height="100%" fill="none" />
 					</g>
 					<g
 						style={{ r: 6 / scale } as CSSProperties}
