@@ -49,10 +49,10 @@ export function ImageDownload({ onCancel }: ImageDownloadProps) {
 			</div>
 
 			<div className="space-x-2 self-end">
-				<Button intent="secondary" onClick={handleBackToCrop}>
+				<Button variant="secondary" onClick={handleBackToCrop}>
 					Edit
 				</Button>
-				<Button intent="primary" onClick={handleDownloadImage}>
+				<Button variant="primary" onClick={handleDownloadImage}>
 					Download
 				</Button>
 			</div>

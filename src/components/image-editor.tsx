@@ -111,10 +111,10 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 			</div>
 
 			<div className="space-x-2 self-end">
-				<Button intent="secondary" onClick={handleCancelCrop}>
+				<Button variant="secondary" onClick={handleCancelCrop}>
 					Cancel
 				</Button>
-				<Button intent="primary" onClick={handleCropImage}>
+				<Button variant="primary" onClick={handleCropImage}>
 					Crop
 				</Button>
 			</div>

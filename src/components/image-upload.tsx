@@ -74,7 +74,7 @@ export function ImageUpload({ onImageLoad }: ImageUploadProps) {
 			{...getRootProps()}
 		>
 			<Button
-				intent="blank"
+				variant="blank"
 				className={clsx(
 					'flex h-[250px] w-full max-w-[500px] flex-grow select-none flex-col items-center justify-center gap-2 rounded-lg stroke-black px-40 !tracking-normal transition-none hover:bg-neutral-200/60',
 					{ 'stroke-blue-500 text-blue-500': isDragActive },
@@ -112,7 +112,7 @@ export function ImageUpload({ onImageLoad }: ImageUploadProps) {
 						/>
 						<Button
 							disabled={!!validationErrors?.length}
-							intent="primary"
+							variant="primary"
 							onClick={() => handleGetImageByURL(imageURL)}
 						>
 							Search
