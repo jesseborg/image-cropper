@@ -1,5 +1,5 @@
 import { MouseEvent } from 'react';
-import { useCropActions, useCroppedImage } from '../stores/editor';
+import { useCropActions, useCropRect, useCroppedImage } from '../stores/editor';
 import { Button } from './button';
 
 type ImageDownloadProps = {
@@ -7,6 +7,7 @@ type ImageDownloadProps = {
 };
 export function ImageDownload({ onCancel }: ImageDownloadProps) {
 	const croppedImage = useCroppedImage();
+	const { width, height } = useCropRect();
 	const { removeCroppedImage } = useCropActions();
 
 	function handleBackToCrop() {
@@ -33,7 +34,9 @@ export function ImageDownload({ onCancel }: ImageDownloadProps) {
 						src={croppedImage ?? ''}
 					/>
 				</span>
-				<p className="mt-[6px] text-xs font-medium text-neutral-400">236x212 — Free</p>
+				<p className="mt-[6px] text-xs font-medium text-neutral-400">
+					{width}x{height} — Free
+				</p>
 			</div>
 
 			<div className="space-x-2 self-end">
