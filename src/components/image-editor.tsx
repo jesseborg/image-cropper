@@ -455,7 +455,7 @@ function CropTool({ initialCrop, aspectRatio, boundsRef, onChange }: CropToolsPr
 					</mask>
 				</defs>
 
-				<rect className="h-full w-full fill-black/50" mask="url(#crop)" />
+				<rect className="fill-black/50" width="100%" height="100%" mask="url(#crop)" />
 			</svg>
 		</div>
 	);
