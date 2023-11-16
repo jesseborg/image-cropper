@@ -4,7 +4,13 @@ import { useGesture } from '@use-gesture/react';
 import clsx from 'clsx';
 import { CSSProperties, ComponentProps, RefObject, useEffect, useRef, useState } from 'react';
 import { TransformComponent, TransformWrapper, useTransformEffect } from 'react-zoom-pan-pinch';
-import { useCropActions, useCropRect, type Rect } from '../stores/editor';
+import {
+	AspectRatio,
+	useAspectRatio,
+	useCropActions,
+	useCropRect,
+	type Rect
+} from '../stores/editor';
 import { Button } from './button';
 
 type ImageEditorProps = {
@@ -15,7 +21,8 @@ type ImageEditorProps = {
 
 export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 	const crop = useCropRect();
-	const { setCropRect, setCroppedImage, resetCropState } = useCropActions();
+	const aspectRatio = useAspectRatio();
+	const { setCropRect, setCroppedImage, setAspectRatio, resetCropState } = useCropActions();
 
 	const [isLoading, setIsLoading] = useState(true);
 
@@ -93,7 +100,12 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 						})}
 					>
 						{!isLoading && (
-							<CropTool initialCrop={crop} boundsRef={imageRef} onChange={setCropRect} />
+							<CropTool
+								initialCrop={crop}
+								aspectRatio={aspectRatio.value}
+								boundsRef={imageRef}
+								onChange={setCropRect}
+							/>
 						)}
 						<div className="contents max-h-full w-full items-center justify-center">
 							<img
@@ -107,7 +119,7 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 				</TransformWrapper>
 
 				{/* Metadata & Controls */}
-				<CropControls crop={crop} />
+				<CropControls crop={crop} onAspectRatioChange={setAspectRatio} />
 			</div>
 
 			<div className="space-x-2 self-end">
@@ -124,10 +136,11 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 
 type CropToolsProps = {
 	initialCrop: Rect;
+	aspectRatio?: number;
 	boundsRef: RefObject<HTMLImageElement>;
 	onChange?: (value: Rect) => void;
 };
-function CropTool({ initialCrop, boundsRef, onChange }: CropToolsProps) {
+function CropTool({ initialCrop, aspectRatio, boundsRef, onChange }: CropToolsProps) {
 	const [scale, setScale] = useState(1);
 	useTransformEffect(({ state }) => setScale(state.scale));
 
@@ -162,32 +175,70 @@ function CropTool({ initialCrop, boundsRef, onChange }: CropToolsProps) {
 
 				switch (id) {
 					case 'top-left': {
-						api.set({
-							x: ox / scale,
-							y: oy / scale,
-							width: x.get() + width.get() - ox / scale,
-							height: y.get() + height.get() - oy / scale
-						});
+						if (aspectRatio) {
+							const newWidth = x.get() + width.get() - ox / scale;
+							const newHeight = newWidth / aspectRatio;
+							api.set({
+								x: ox / scale,
+								y: y.get() + height.get() - newHeight,
+								width: newWidth,
+								height: newHeight
+							});
+						} else {
+							api.set({
+								x: ox / scale,
+								y: oy / scale,
+								width: x.get() + width.get() - ox / scale,
+								height: y.get() + height.get() - oy / scale
+							});
+						}
 						break;
 					}
 					case 'top-right': {
-						api.set({
-							y: oy / scale,
-							width: ox / scale,
-							height: y.get() + height.get() - oy / scale
-						});
+						if (aspectRatio) {
+							const newWidth = ox / scale;
+							const newHeight = newWidth / aspectRatio;
+							api.set({
+								y: y.get() + height.get() - newHeight,
+								width: newWidth,
+								height: newHeight
+							});
+						} else {
+							api.set({
+								y: oy / scale,
+								width: ox / scale,
+								height: y.get() + height.get() - oy / scale
+							});
+						}
 						break;
 					}
 					case 'bottom-right': {
-						api.set({ width: ox / scale, height: oy / scale });
+						if (aspectRatio) {
+							const newSize = ox / scale;
+							api.set({
+								width: newSize,
+								height: newSize / aspectRatio
+							});
+						} else {
+							api.set({ width: ox / scale, height: oy / scale });
+						}
 						break;
 					}
 					case 'bottom-left': {
-						api.set({
-							x: ox / scale,
-							width: x.get() + width.get() - ox / scale,
-							height: oy / scale
-						});
+						if (aspectRatio) {
+							const newSize = x.get() + width.get() - ox / scale;
+							api.set({
+								x: ox / scale,
+								width: newSize,
+								height: newSize / aspectRatio
+							});
+						} else {
+							api.set({
+								x: ox / scale,
+								width: x.get() + width.get() - ox / scale,
+								height: oy / scale
+							});
+						}
 						break;
 					}
 					default: {
@@ -224,42 +275,65 @@ function CropTool({ initialCrop, boundsRef, onChange }: CropToolsProps) {
 						top: y.get() * scale,
 						left: x.get() * scale,
 						right: (x.get() + width.get()) * scale,
-						bottom: (y.get() + height.get()) * scale
+						bottom: (y.get() + height.get()) * scale,
+						width: width.get() * scale,
+						height: height.get() * scale
 					};
 
 					const {
 						dataset: { id }
 					} = event?.target as HTMLDivElement;
 
+					/* NOTE: Bounds are based on the "from" coordinates, NOT the image bounds */
+
 					switch (id) {
 						case 'top-left': {
+							const left = aspectRatio
+								? Math.max(0, cropRect.right - cropRect.bottom * aspectRatio)
+								: 0;
+
 							return {
 								top: 0,
-								left: 0,
+								left,
 								right: cropRect.right - minSize,
 								bottom: cropRect.bottom - minSize
 							};
 						}
 						case 'top-right': {
+							const right = aspectRatio
+								? Math.min(boundsRect.width - cropRect.left, cropRect.bottom * aspectRatio)
+								: boundsRect.width - cropRect.left;
+
 							return {
 								top: 0,
 								left: minSize,
-								right: boundsRect.width - cropRect.left,
+								right,
 								bottom: cropRect.bottom - minSize
 							};
 						}
 						case 'bottom-right': {
+							const right = aspectRatio
+								? Math.min(
+										boundsRect.width - cropRect.left,
+										(boundsRect.height - cropRect.top) * aspectRatio
+								  )
+								: boundsRect.width - cropRect.left;
+
 							return {
 								top: minSize,
 								left: minSize,
-								right: boundsRect.width - cropRect.left,
+								right,
 								bottom: boundsRect.height - cropRect.top
 							};
 						}
 						case 'bottom-left': {
+							const left = aspectRatio
+								? Math.max(0, cropRect.right - (boundsRect.height - cropRect.top) * aspectRatio)
+								: 0;
+
 							return {
 								top: minSize,
-								left: 0,
+								left,
 								right: cropRect.right - minSize,
 								bottom: boundsRect.height - cropRect.top
 							};
@@ -268,8 +342,8 @@ function CropTool({ initialCrop, boundsRef, onChange }: CropToolsProps) {
 							return {
 								top: 0,
 								left: 0,
-								right: boundsRect.width - width.get() * scale,
-								bottom: boundsRect.height - height.get() * scale
+								right: boundsRect.width - cropRect.width,
+								bottom: boundsRect.height - cropRect.height
 							};
 						}
 					}
@@ -389,27 +463,45 @@ function CropTool({ initialCrop, boundsRef, onChange }: CropToolsProps) {
 
 type ControlsProps = {
 	crop: Rect;
+	onAspectRatioChange?: (aspectRatio: AspectRatio) => void;
 };
-function CropControls({ crop }: ControlsProps) {
+
+function CropControls({ crop, onAspectRatioChange }: ControlsProps) {
+	const aspectRatio = useAspectRatio();
+	const aspectRatios: AspectRatio[] = [
+		{ key: 'Free', value: 0 },
+		{ key: '1:1', value: 1 / 1 },
+		{ key: '3:4', value: 3 / 4 },
+		{ key: '9:16', value: 9 / 16 }
+	];
+
 	return (
-		<div className="relative rounded-lg border border-neutral-400 bg-white p-2">
-			<div className="flex gap-2 text-xs">
-				<p className="font-medium text-neutral-600">
-					<b className="pr-1 text-neutral-950">X:</b>
-					{crop.x}
-				</p>
-				<p className="font-medium text-neutral-600">
-					<b className="pr-1 text-neutral-950">Y:</b>
-					{crop.y}
-				</p>
+		<div className="relative flex flex-wrap gap-2 rounded-lg border border-neutral-400 bg-white p-2 px-3">
+			<div className="mx-auto flex w-auto gap-2 text-xs sm:mx-0 sm:w-0">
 				<p className="font-medium text-neutral-600">
 					<b className="pr-1 text-neutral-950">W:</b>
-					{crop.width}
+					{crop.width}px
 				</p>
 				<p className="font-medium text-neutral-600">
 					<b className="pr-1 text-neutral-950">H:</b>
-					{crop.height}
+					{crop.height}px
 				</p>
+			</div>
+
+			<div className="mx-auto flex gap-2">
+				{aspectRatios.map((ratio) => (
+					<Button
+						key={ratio.key}
+						className={clsx('rounded-sm font-medium text-neutral-500 hover:text-neutral-950', {
+							'text-neutral-950': ratio.value === aspectRatio.value
+						})}
+						variant="blank"
+						padding="none"
+						onClick={() => onAspectRatioChange?.(ratio)}
+					>
+						{ratio.key}
+					</Button>
+				))}
 			</div>
 		</div>
 	);
