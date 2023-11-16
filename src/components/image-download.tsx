@@ -29,24 +29,22 @@ export function ImageDownload() {
 	}
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="relative flex max-h-full flex-col gap-4">
 			<div>
 				<h1 className="text-base font-medium text-neutral-800">Tada!</h1>
 				<p className="text-xs text-neutral-500">Here's your cropped image!</p>
 			</div>
 
-			<div>
-				<span className="relative">
-					<img className="relative z-10 rounded-lg" src={croppedImage ?? ''} />
-					<img
-						className="absolute top-1/2 z-0 -translate-y-1/2 scale-95 rounded-lg blur-xl"
-						src={croppedImage ?? ''}
-					/>
-				</span>
-				<p className="mt-[6px] text-xs font-medium text-neutral-400">
-					{width}x{height} — Free
-				</p>
+			<div className="relative flex h-full items-center justify-center overflow-hidden">
+				<img
+					className="relative z-10 max-h-full w-auto rounded-lg object-cover"
+					src={croppedImage!}
+					alt="Cropped Image"
+				/>
 			</div>
+			<p className="-mt-[6px] text-xs font-medium text-neutral-400">
+				{width}x{height} — Free
+			</p>
 
 			<div className="space-x-2 self-end">
 				<Button variant="secondary" onClick={handleBackToCrop}>
