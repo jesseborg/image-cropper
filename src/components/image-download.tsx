@@ -1,6 +1,6 @@
 import { MouseEvent } from 'react';
 import { useStepper } from '../hooks/use-stepper';
-import { useCropActions, useCropRect, useCroppedImage } from '../stores/editor';
+import { useAspectRatio, useCropActions, useCropRect, useCroppedImage } from '../stores/editor';
 import { Button } from './button';
 
 export function ImageDownload() {
@@ -8,6 +8,7 @@ export function ImageDownload() {
 
 	const croppedImage = useCroppedImage();
 	const { width, height } = useCropRect();
+	const aspectRatio = useAspectRatio();
 	const { removeCroppedImage } = useCropActions();
 
 	function handleBackToCrop() {
@@ -43,7 +44,7 @@ export function ImageDownload() {
 				/>
 			</div>
 			<p className="-mt-[6px] text-xs font-medium text-neutral-400">
-				{width}x{height} — Free
+				{width}x{height} — {aspectRatio.key}
 			</p>
 
 			<div className="space-x-2 self-end">
