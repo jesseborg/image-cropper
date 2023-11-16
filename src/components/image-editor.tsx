@@ -4,22 +4,22 @@ import { useGesture } from '@use-gesture/react';
 import clsx from 'clsx';
 import { CSSProperties, ComponentProps, RefObject, useEffect, useRef, useState } from 'react';
 import { TransformComponent, TransformWrapper, useTransformEffect } from 'react-zoom-pan-pinch';
+import { useStepper } from '../hooks/use-stepper';
 import {
 	AspectRatio,
 	useAspectRatio,
 	useCropActions,
 	useCropRect,
+	useOriginalImage,
 	type Rect
 } from '../stores/editor';
 import { Button } from './button';
 
-type ImageEditorProps = {
-	src: string;
-	onCancel?: () => void;
-	onConfirm?: () => void;
-};
+export function ImageEditor() {
+	const { previousStep, nextStep } = useStepper();
 
-export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
+	const originalImage = useOriginalImage();
+
 	const crop = useCropRect();
 	const aspectRatio = useAspectRatio();
 	const { setCropRect, setCroppedImage, setAspectRatio, resetCropState } = useCropActions();
@@ -33,7 +33,7 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 
 	function handleCancelCrop() {
 		resetCropState();
-		onCancel?.();
+		previousStep();
 	}
 
 	function handleCropImage() {
@@ -65,7 +65,7 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 			}
 
 			setCroppedImage(URL.createObjectURL(blob));
-			onConfirm?.();
+			nextStep();
 		});
 	}
 
@@ -111,7 +111,7 @@ export function ImageEditor({ src, onCancel, onConfirm }: ImageEditorProps) {
 							<img
 								ref={imageRef}
 								className="max-h-full"
-								src={src}
+								src={originalImage!}
 								onLoad={() => setIsLoading(false)}
 							/>
 						</div>

@@ -1,18 +1,18 @@
 import { MouseEvent } from 'react';
+import { useStepper } from '../hooks/use-stepper';
 import { useCropActions, useCropRect, useCroppedImage } from '../stores/editor';
 import { Button } from './button';
 
-type ImageDownloadProps = {
-	onCancel?: () => void;
-};
-export function ImageDownload({ onCancel }: ImageDownloadProps) {
+export function ImageDownload() {
+	const { previousStep } = useStepper();
+
 	const croppedImage = useCroppedImage();
 	const { width, height } = useCropRect();
 	const { removeCroppedImage } = useCropActions();
 
 	function handleBackToCrop() {
 		removeCroppedImage();
-		onCancel?.();
+		previousStep();
 	}
 
 	function handleDownloadImage(event: MouseEvent) {

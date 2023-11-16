@@ -13,21 +13,14 @@ export type AspectRatio = {
 };
 
 type EditorState = {
+	originalImage: string | null;
 	croppedImage: string | null;
 	cropRect: Rect;
 	aspectRatio: AspectRatio;
 };
-interface EditorStore extends EditorState {
-	actions: {
-		setCropRect: (crop: Rect) => void;
-		setCroppedImage: (image: string) => void;
-		setAspectRatio: (aspectRatio: AspectRatio) => void;
-		removeCroppedImage: () => void;
-		resetCropState: () => void;
-	};
-}
 
 const intitialState: EditorState = {
+	originalImage: null,
 	croppedImage: null,
 	cropRect: { x: 0, y: 0, width: 128, height: 128 },
 	aspectRatio: {
@@ -36,21 +29,42 @@ const intitialState: EditorState = {
 	}
 };
 
+interface EditorStore extends EditorState {
+	actions: {
+		setOriginalImage: (originalImage: string) => void;
+		setCroppedImage: (croppedImage: string) => void;
+		setCropRect: (cropRect: Rect) => void;
+		setAspectRatio: (aspectRatio: AspectRatio) => void;
+		removeCroppedImage: () => void;
+		resetCropState: () => void;
+	};
+}
+
 const useEditorStore = create<EditorStore>((set) => ({
 	...intitialState,
 	actions: {
-		setCropRect: (cropRect: Rect) => set(() => ({ cropRect })),
+		setOriginalImage: (originalImage: string) =>
+			set((state) => {
+				URL.revokeObjectURL(state.originalImage!);
+				return { originalImage };
+			}),
 		setCroppedImage: (croppedImage: string) => set(() => ({ croppedImage })),
+		setCropRect: (cropRect: Rect) => set(() => ({ cropRect })),
 		setAspectRatio: (aspectRatio: AspectRatio) => set(() => ({ aspectRatio })),
 		removeCroppedImage: () =>
 			set((state) => {
 				URL.revokeObjectURL(state.croppedImage!);
 				return { croppedImage: null };
 			}),
-		resetCropState: () => set(() => intitialState)
+		resetCropState: () =>
+			set((state) => {
+				URL.revokeObjectURL(state.originalImage!);
+				return intitialState;
+			})
 	}
 }));
 
+export const useOriginalImage = () => useEditorStore((state) => state.originalImage);
 export const useCroppedImage = () => useEditorStore((state) => state.croppedImage);
 export const useCropRect = () => useEditorStore((state) => state.cropRect);
 export const useAspectRatio = () => useEditorStore((state) => state.aspectRatio);

@@ -1,61 +1,37 @@
-import { useState } from 'react';
 import {} from 'react-zoom-pan-pinch';
 import { Container } from './components/container';
 import { ImageDownload } from './components/image-download';
 import { ImageEditor } from './components/image-editor';
 import { ImageUpload } from './components/image-upload';
-import { useCroppedImage } from './stores/editor';
+import { Stepper } from './components/stepper';
+import { useCroppedImage, useOriginalImage } from './stores/editor';
 
 function App() {
-	const [blobURL, setBlobURL] = useState('');
-	const [stepIndex, setStepIndex] = useState(0);
-
 	return (
 		<main>
-			<Background src={blobURL} />
+			<Background />
 			<div className="flex h-screen items-center justify-center p-8">
 				<Container className="max-h-[calc(100vh-32px*2)] max-w-[calc(100vw-32px)] overflow-hidden">
-					{stepIndex === 0 && (
-						<ImageUpload
-							onImageLoad={(blobURL) => {
-								// Revoke old Blob URL before updating
-								setBlobURL((url) => {
-									URL.revokeObjectURL(url);
-									return blobURL;
-								});
-								setStepIndex(1);
-							}}
-						/>
-					)}
-					{stepIndex === 1 && (
-						<ImageEditor
-							src={blobURL}
-							onCancel={() => {
-								setBlobURL((url) => {
-									URL.revokeObjectURL(url);
-									return '';
-								});
-								setStepIndex(0);
-							}}
-							onConfirm={() => {
-								setStepIndex(2);
-							}}
-						/>
-					)}
-					{stepIndex === 2 && <ImageDownload onCancel={() => setStepIndex(1)} />}
+					<Stepper>
+						<ImageUpload />
+						<ImageEditor />
+						<ImageDownload />
+					</Stepper>
 				</Container>
 			</div>
 		</main>
 	);
 }
 
-function Background({ src }: { src: string }) {
-	const backgroundImage = useCroppedImage() ?? src;
+function Background() {
+	const originalImage = useOriginalImage();
+	const croppedImage = useCroppedImage();
+	const backgroundImage = croppedImage || originalImage;
 
 	return (
 		<div className="pointer-events-none absolute inset-0 overflow-hidden">
 			{/* Noise Filter */}
-			{!src && (
+			{!backgroundImage && (
 				<>
 					<svg
 						className="opacity-50 mix-blend-overlay"
@@ -101,7 +77,7 @@ function Background({ src }: { src: string }) {
 				</>
 			)}
 
-			{Boolean(backgroundImage) && (
+			{backgroundImage && (
 				<img
 					className="absolute left-1/2 top-1/2 z-0 -translate-x-1/2 -translate-y-1/2 scale-90 p-8 blur-3xl saturate-200"
 					src={backgroundImage}

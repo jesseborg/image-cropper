@@ -3,6 +3,8 @@ import { BanIcon, ImagePlus } from 'lucide-react';
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { z } from 'zod';
+import { useStepper } from '../hooks/use-stepper';
+import { useCropActions } from '../stores/editor';
 import { Button } from './button';
 import { Input } from './input';
 
@@ -13,17 +15,22 @@ const imageURLSchema = z
 	.min(1, ' ')
 	.url("Please check that your link start with 'http://' or 'https://'");
 
-type ImageUploadProps = {
-	onImageLoad?: (url: string) => void;
-};
+export function ImageUpload() {
+	const { nextStep } = useStepper();
 
-export function ImageUpload({ onImageLoad }: ImageUploadProps) {
+	const { setOriginalImage } = useCropActions();
+
 	const [imageURL, setImageURL] = useState('');
 
 	const validationResult = imageURLSchema.safeParse(imageURL);
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
 	const validationErrors = validationResult.error?.issues;
+
+	const handleImageLoad = (url: string) => {
+		setOriginalImage(url);
+		nextStep();
+	};
 
 	const { isDragReject, getRootProps, getInputProps, isDragActive, open } = useDropzone({
 		multiple: false,
@@ -36,7 +43,7 @@ export function ImageUpload({ onImageLoad }: ImageUploadProps) {
 			}
 
 			const blob = URL.createObjectURL(files[0]);
-			onImageLoad?.(blob);
+			handleImageLoad(blob);
 		}
 	});
 
@@ -59,7 +66,7 @@ export function ImageUpload({ onImageLoad }: ImageUploadProps) {
 		}
 
 		const blob = URL.createObjectURL(await response.blob());
-		onImageLoad?.(blob);
+		handleImageLoad(blob);
 	}
 
 	return (
