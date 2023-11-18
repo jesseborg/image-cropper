@@ -140,7 +140,7 @@ type CropToolsProps = {
 	boundsRef: RefObject<HTMLImageElement>;
 	onChange?: (value: Rect) => void;
 };
-function CropTool({ initialCrop, aspectRatio, boundsRef, onChange }: CropToolsProps) {
+function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToolsProps) {
 	const [scale, setScale] = useState(1);
 	useTransformEffect(({ state }) => setScale(state.scale));
 
@@ -150,12 +150,28 @@ function CropTool({ initialCrop, aspectRatio, boundsRef, onChange }: CropToolsPr
 	const boundsScaleFactor = boundsRef.current!.naturalWidth / boundsRef.current!.clientWidth;
 	const MIN_SIZE = 128;
 
-	const [{ x, y, width, height }, api] = useSpring(() => ({
-		x: initialCrop.x / boundsScaleFactor,
-		y: initialCrop.y / boundsScaleFactor,
-		width: initialCrop.width / boundsScaleFactor,
-		height: initialCrop.height / boundsScaleFactor
-	}));
+	const [{ x, y, width, height }, api] = useSpring(
+		() => ({
+			x: initialCrop.x / boundsScaleFactor,
+			y: initialCrop.y / boundsScaleFactor,
+			width: initialCrop.width / boundsScaleFactor,
+			height: aspectRatio
+				? initialCrop.width / boundsScaleFactor / aspectRatio
+				: initialCrop.height / boundsScaleFactor,
+			immediate: true,
+			onChange: () => {
+				onChange?.(
+					convertToOriginalCoordinates({
+						x: x.get(),
+						y: y.get(),
+						width: width.get(),
+						height: height.get()
+					})
+				);
+			}
+		}),
+		[aspectRatio]
+	);
 
 	function convertToOriginalCoordinates(rect: Rect) {
 		return {
@@ -246,16 +262,6 @@ function CropTool({ initialCrop, aspectRatio, boundsRef, onChange }: CropToolsPr
 						break;
 					}
 				}
-
-				// handle onchange event
-				onChange?.(
-					convertToOriginalCoordinates({
-						x: x.get(),
-						y: y.get(),
-						width: width.get(),
-						height: height.get()
-					})
-				);
 			}
 		},
 		{
@@ -445,11 +451,14 @@ function CropTool({ initialCrop, aspectRatio, boundsRef, onChange }: CropToolsPr
 				<defs>
 					<mask id="crop">
 						<rect x="0" y="0" width="100%" height="100%" fill="white" />
-						<rect
-							x={Math.round(x.get())}
-							y={Math.round(y.get())}
-							width={Math.round(width.get() + 2)}
-							height={Math.round(height.get() + 2)}
+						<animated.rect
+							style={{
+								x: x.to(Math.round),
+								y: y.to(Math.round),
+								// +2px for border
+								width: width.to((val) => Math.round(val) + 2),
+								height: height.to((val) => Math.round(val) + 2)
+							}}
 							fill="black"
 						/>
 					</mask>
