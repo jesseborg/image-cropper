@@ -27,6 +27,8 @@ import {
 	useTransform,
 	type Rect
 } from '../stores/editor';
+import { clamp } from '../utils/clamp';
+import { CropImageToBlob } from '../utils/crop-image-to-blob';
 import { Button } from './button';
 
 export function ImageEditor() {
@@ -52,37 +54,14 @@ export function ImageEditor() {
 		previousStep();
 	}
 
-	function handleCropImage() {
-		const canvas = document.createElement('canvas');
-		const ctx = canvas.getContext('2d');
-
-		if (!ctx || !imageRef.current) {
+	async function handleCropImage() {
+		if (!imageRef.current) {
 			return;
 		}
 
-		ctx.canvas.width = crop.width;
-		ctx.canvas.height = crop.height;
-
-		ctx.drawImage(
-			imageRef.current,
-			crop.x,
-			crop.y,
-			crop.width,
-			crop.height,
-			0,
-			0,
-			crop.width,
-			crop.height
-		);
-
-		canvas.toBlob((blob) => {
-			if (!blob) {
-				return;
-			}
-
-			setCroppedImage(URL.createObjectURL(blob));
-			nextStep();
-		});
+		const blob = await CropImageToBlob(imageRef.current, crop);
+		setCroppedImage(blob);
+		nextStep();
 	}
 
 	function handleTransformInit({ setTransform }: ReactZoomPanPinchRef) {
@@ -175,10 +154,6 @@ function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToo
 	// This is the scale factor from the original image to whats rendered on the screen
 	const boundsScaleFactor = boundsRef.current!.naturalWidth / boundsRef.current!.clientWidth;
 	const MIN_SIZE = 128;
-
-	function clamp(value: number, min: number, max: number) {
-		return Math.min(Math.max(value, min), max);
-	}
 
 	const keepCropInBounds = useCallback(
 		(crop: Rect) => {
