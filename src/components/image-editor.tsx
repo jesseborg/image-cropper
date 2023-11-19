@@ -2,7 +2,15 @@
 import { animated, useSpring } from '@react-spring/web';
 import { useGesture } from '@use-gesture/react';
 import clsx from 'clsx';
-import { CSSProperties, ComponentProps, RefObject, useEffect, useRef, useState } from 'react';
+import {
+	CSSProperties,
+	ComponentProps,
+	RefObject,
+	useCallback,
+	useEffect,
+	useRef,
+	useState
+} from 'react';
 import { TransformComponent, TransformWrapper, useTransformEffect } from 'react-zoom-pan-pinch';
 import { useStepper } from '../hooks/use-stepper';
 import {
@@ -154,73 +162,60 @@ function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToo
 		return Math.min(Math.max(value, min), max);
 	}
 
-	function keepInitialCropInBounds() {
-		// Convert initial crop values to scaled rectangle
-		const cropRect = {
-			x: initialCrop.x / boundsScaleFactor,
-			y: initialCrop.y / boundsScaleFactor,
-			width: initialCrop.width / boundsScaleFactor,
-			height: initialCrop.height / boundsScaleFactor,
-			right: (initialCrop.x + initialCrop.width) / boundsScaleFactor,
-			bottom: (initialCrop.y + initialCrop.height) / boundsScaleFactor
-		};
+	const keepCropInBounds = useCallback(
+		(crop: Rect) => {
+			// Calculate new height considering aspect ratio
+			const newHeight = aspectRatio ? crop.width / aspectRatio : crop.height;
 
-		// Calculate new height considering aspect ratio
-		const newHeight = aspectRatio ? cropRect.width / aspectRatio : cropRect.height;
+			// Ensure new height is within specified bounds
+			const clampedHeight = clamp(
+				newHeight,
+				MIN_SIZE / boundsScaleFactor,
+				boundsRef.current!.clientHeight
+			);
 
-		// Ensure new height is within specified bounds
-		const clampedHeight = clamp(
-			newHeight,
-			MIN_SIZE / boundsScaleFactor,
-			boundsRef.current!.clientHeight
-		);
+			// Calculate new width based on clamped height and aspect ratio
+			const clampedWidth = clamp(
+				aspectRatio ? clampedHeight * aspectRatio : crop.width,
+				MIN_SIZE / boundsScaleFactor,
+				boundsRef.current!.clientWidth
+			);
 
-		// Calculate new width based on clamped height and aspect ratio
-		const clampedWidth = clamp(
-			aspectRatio ? clampedHeight * aspectRatio : cropRect.width,
-			MIN_SIZE / boundsScaleFactor,
-			boundsRef.current!.clientWidth
-		);
+			// Keep crop within bounds
+			const adjustedX = Math.min(crop.x, boundsRef.current!.clientWidth - clampedWidth);
+			const adjustedY = Math.min(crop.y, boundsRef.current!.clientHeight - clampedHeight);
 
-		// Keep crop within bounds
-		const adjustedX = Math.min(cropRect.x, boundsRef.current!.clientWidth - clampedWidth);
-		const adjustedY = Math.min(cropRect.y, boundsRef.current!.clientHeight - clampedHeight);
-
-		// Return the final values for the rectangle within bounds
-		return {
-			x: adjustedX,
-			y: adjustedY,
-			width: clampedWidth,
-			height: clampedHeight
-		};
-	}
+			// Return the final values for the rectangle within bounds
+			return {
+				x: adjustedX,
+				y: adjustedY,
+				width: clampedWidth,
+				height: clampedHeight
+			};
+		},
+		[aspectRatio, boundsScaleFactor]
+	);
 
 	const [{ x, y, width, height }, api] = useSpring(
 		() => ({
-			...keepInitialCropInBounds(),
+			...keepCropInBounds({
+				x: initialCrop.x / boundsScaleFactor,
+				y: initialCrop.y / boundsScaleFactor,
+				width: initialCrop.width / boundsScaleFactor,
+				height: initialCrop.height / boundsScaleFactor
+			}),
 			immediate: true,
 			onChange: () => {
-				onChange?.(
-					convertToOriginalCoordinates({
-						x: x.get(),
-						y: y.get(),
-						width: width.get(),
-						height: height.get()
-					})
-				);
+				onChange?.({
+					x: x.get() * boundsScaleFactor,
+					y: y.get() * boundsScaleFactor,
+					width: width.get() * boundsScaleFactor,
+					height: height.get() * boundsScaleFactor
+				});
 			}
 		}),
-		[aspectRatio]
+		[aspectRatio, boundsScaleFactor]
 	);
-
-	function convertToOriginalCoordinates(rect: Rect) {
-		return {
-			x: rect.x * boundsScaleFactor,
-			y: rect.y * boundsScaleFactor,
-			width: rect.width * boundsScaleFactor,
-			height: rect.height * boundsScaleFactor
-		};
-	}
 
 	const bind = useGesture(
 		{
@@ -423,32 +418,30 @@ function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToo
 			return;
 		}
 
-		onChange?.(
-			convertToOriginalCoordinates({
-				x: x.get(),
-				y: y.get(),
-				width: width.get(),
-				height: height.get()
-			})
-		);
+		function handleResize() {
+			api.set(
+				keepCropInBounds({
+					x: x.get(),
+					y: y.get(),
+					width: width.get(),
+					height: height.get()
+				})
+			);
 
-		function keepCropToolInBounds() {
-			// const relativeBoundsRect = getRelativeBounds(containerElement, boundsRef.current);
-			// console.log(relativeBoundsRect.left);
-			// setBoundsLeft(relativeBoundsRect.left);
-			// const relativeImageRect = getRelativeBounds(containerElement, imageElement);
-			// api.set({
-			// 	x: clamp(x.get(), relativeImageRect.left, relativeImageRect.right - cropRect.width),
-			// 	y: clamp(y.get(), relativeImageRect.top, relativeImageRect.bottom - cropRect.height)
-			// });
+			onChange?.({
+				x: x.get() * boundsScaleFactor,
+				y: y.get() * boundsScaleFactor,
+				width: width.get() * boundsScaleFactor,
+				height: height.get() * boundsScaleFactor
+			});
 		}
 
-		window.addEventListener('resize', keepCropToolInBounds);
+		window.addEventListener('resize', handleResize);
 
 		return () => {
-			window.removeEventListener('resize', keepCropToolInBounds);
+			window.removeEventListener('resize', handleResize);
 		};
-	}, []);
+	}, [boundsScaleFactor]);
 
 	return (
 		<div>
