@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type Rect = {
+export type Rectangle = {
 	x: number;
 	y: number;
 	width: number;
@@ -21,7 +21,7 @@ export type Transform = {
 type EditorState = {
 	originalImage: string | null;
 	croppedImage: string | null;
-	cropRect: Rect;
+	cropRect: Rectangle;
 	aspectRatio: AspectRatio;
 	transform: Transform;
 };
@@ -45,7 +45,7 @@ interface EditorStore extends EditorState {
 	actions: {
 		setOriginalImage: (originalImage: string) => void;
 		setCroppedImage: (croppedImage: string) => void;
-		setCropRect: (cropRect: Rect) => void;
+		setCropRect: (cropRect: Rectangle) => void;
 		setAspectRatio: (aspectRatio: AspectRatio) => void;
 		setTransform: (transform: Transform) => void;
 		removeCroppedImage: () => void;
@@ -62,7 +62,7 @@ const useEditorStore = create<EditorStore>((set) => ({
 				return { originalImage };
 			}),
 		setCroppedImage: (croppedImage: string) => set(() => ({ croppedImage })),
-		setCropRect: (cropRect: Rect) => set(() => ({ cropRect })),
+		setCropRect: (cropRect: Rectangle) => set(() => ({ cropRect })),
 		setAspectRatio: (aspectRatio: AspectRatio) => set(() => ({ aspectRatio })),
 		setTransform: (transform: Transform) => set(() => ({ transform })),
 		removeCroppedImage: () =>

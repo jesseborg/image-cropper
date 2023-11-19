@@ -25,7 +25,7 @@ import {
 	useCropRect,
 	useOriginalImage,
 	useTransform,
-	type Rect
+	type Rectangle
 } from '../stores/editor';
 import { clamp } from '../utils/clamp';
 import { CropImageToBlob } from '../utils/crop-image-to-blob';
@@ -140,10 +140,10 @@ export function ImageEditor() {
 }
 
 type CropToolsProps = {
-	initialCrop: Rect;
+	initialCrop: Rectangle;
 	aspectRatio?: number;
 	boundsRef: RefObject<HTMLImageElement>;
-	onChange?: (value: Rect) => void;
+	onChange?: (value: Rectangle) => void;
 };
 function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToolsProps) {
 	const [scale, setScale] = useState(1);
@@ -156,7 +156,7 @@ function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToo
 	const MIN_SIZE = 128;
 
 	const keepCropInBounds = useCallback(
-		(crop: Rect) => {
+		(crop: Rectangle) => {
 			// Calculate new height considering aspect ratio
 			const newHeight = aspectRatio ? crop.width / aspectRatio : crop.height;
 
@@ -497,7 +497,7 @@ function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToo
 }
 
 type ControlsProps = {
-	crop: Rect;
+	crop: Rectangle;
 	onAspectRatioChange?: (aspectRatio: AspectRatio) => void;
 };
 

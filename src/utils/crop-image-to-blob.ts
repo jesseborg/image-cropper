@@ -1,6 +1,6 @@
-import { Rect } from '../stores/editor';
+import { Rectangle } from '../stores/editor';
 
-export function CropImageToBlob(image: HTMLImageElement, crop: Rect) {
+export function CropImageToBlob(image: HTMLImageElement, crop: Rectangle) {
 	return new Promise((resolve: (url: string) => void, reject: () => void) => {
 		const canvas = document.createElement('canvas');
 		const ctx = canvas.getContext('2d');
