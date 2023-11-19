@@ -24,7 +24,7 @@ export function ImageDownload() {
 		}
 
 		const link = document.createElement('a');
-		link.download = `cropped_${width}x${height}.png`;
+		link.download = `cropped_${Math.round(width)}x${Math.round(height)}.png`;
 		link.href = croppedImage;
 		link.click();
 	}
@@ -44,7 +44,7 @@ export function ImageDownload() {
 				/>
 			</div>
 			<p className="-mt-[6px] text-xs font-medium text-neutral-400">
-				{width}x{height} — {aspectRatio.key}
+				{Math.round(width)}x{Math.round(height)} — {aspectRatio.key}
 			</p>
 
 			<div className="space-x-2 self-end">

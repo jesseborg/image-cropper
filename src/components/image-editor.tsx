@@ -150,14 +150,54 @@ function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToo
 	const boundsScaleFactor = boundsRef.current!.naturalWidth / boundsRef.current!.clientWidth;
 	const MIN_SIZE = 128;
 
-	const [{ x, y, width, height }, api] = useSpring(
-		() => ({
+	function clamp(value: number, min: number, max: number) {
+		return Math.min(Math.max(value, min), max);
+	}
+
+	function keepInitialCropInBounds() {
+		// Convert initial crop values to scaled rectangle
+		const cropRect = {
 			x: initialCrop.x / boundsScaleFactor,
 			y: initialCrop.y / boundsScaleFactor,
 			width: initialCrop.width / boundsScaleFactor,
-			height: aspectRatio
-				? initialCrop.width / boundsScaleFactor / aspectRatio
-				: initialCrop.height / boundsScaleFactor,
+			height: initialCrop.height / boundsScaleFactor,
+			right: (initialCrop.x + initialCrop.width) / boundsScaleFactor,
+			bottom: (initialCrop.y + initialCrop.height) / boundsScaleFactor
+		};
+
+		// Calculate new height considering aspect ratio
+		const newHeight = aspectRatio ? cropRect.width / aspectRatio : cropRect.height;
+
+		// Ensure new height is within specified bounds
+		const clampedHeight = clamp(
+			newHeight,
+			MIN_SIZE / boundsScaleFactor,
+			boundsRef.current!.clientHeight
+		);
+
+		// Calculate new width based on clamped height and aspect ratio
+		const clampedWidth = clamp(
+			aspectRatio ? clampedHeight * aspectRatio : cropRect.width,
+			MIN_SIZE / boundsScaleFactor,
+			boundsRef.current!.clientWidth
+		);
+
+		// Keep crop within bounds
+		const adjustedX = Math.min(cropRect.x, boundsRef.current!.clientWidth - clampedWidth);
+		const adjustedY = Math.min(cropRect.y, boundsRef.current!.clientHeight - clampedHeight);
+
+		// Return the final values for the rectangle within bounds
+		return {
+			x: adjustedX,
+			y: adjustedY,
+			width: clampedWidth,
+			height: clampedHeight
+		};
+	}
+
+	const [{ x, y, width, height }, api] = useSpring(
+		() => ({
+			...keepInitialCropInBounds(),
 			immediate: true,
 			onChange: () => {
 				onChange?.(
@@ -175,10 +215,10 @@ function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToo
 
 	function convertToOriginalCoordinates(rect: Rect) {
 		return {
-			x: Math.round(rect.x * boundsScaleFactor),
-			y: Math.round(rect.y * boundsScaleFactor),
-			width: Math.round(rect.width * boundsScaleFactor),
-			height: Math.round(rect.height * boundsScaleFactor)
+			x: rect.x * boundsScaleFactor,
+			y: rect.y * boundsScaleFactor,
+			width: rect.width * boundsScaleFactor,
+			height: rect.height * boundsScaleFactor
 		};
 	}
 
@@ -489,11 +529,11 @@ function CropControls({ crop, onAspectRatioChange }: ControlsProps) {
 			<div className="mx-auto flex w-auto gap-2 text-xs sm:mx-0 sm:w-0">
 				<p className="font-medium text-neutral-600">
 					<b className="pr-1 text-neutral-950">W:</b>
-					{crop.width}px
+					{Math.round(crop.width)}px
 				</p>
 				<p className="font-medium text-neutral-600">
 					<b className="pr-1 text-neutral-950">H:</b>
-					{crop.height}px
+					{Math.round(crop.height)}px
 				</p>
 			</div>
 
