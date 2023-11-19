@@ -11,7 +11,12 @@ import {
 	useRef,
 	useState
 } from 'react';
-import { TransformComponent, TransformWrapper, useTransformEffect } from 'react-zoom-pan-pinch';
+import {
+	ReactZoomPanPinchRef,
+	TransformComponent,
+	TransformWrapper,
+	useTransformEffect
+} from 'react-zoom-pan-pinch';
 import { useStepper } from '../hooks/use-stepper';
 import {
 	AspectRatio,
@@ -19,6 +24,7 @@ import {
 	useCropActions,
 	useCropRect,
 	useOriginalImage,
+	useTransform,
 	type Rect
 } from '../stores/editor';
 import { Button } from './button';
@@ -30,7 +36,9 @@ export function ImageEditor() {
 
 	const crop = useCropRect();
 	const aspectRatio = useAspectRatio();
-	const { setCropRect, setCroppedImage, setAspectRatio, resetCropState } = useCropActions();
+	const transform = useTransform();
+	const { setCropRect, setCroppedImage, setAspectRatio, resetCropState, setTransform } =
+		useCropActions();
 
 	const [isLoading, setIsLoading] = useState(true);
 
@@ -77,6 +85,14 @@ export function ImageEditor() {
 		});
 	}
 
+	function handleTransformInit({ setTransform }: ReactZoomPanPinchRef) {
+		setTransform(transform.x, transform.y, transform.scale, 10);
+	}
+
+	function handleTransform({ state: { positionX: x, positionY: y, scale } }: ReactZoomPanPinchRef) {
+		setTransform({ x, y, scale });
+	}
+
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="relative flex h-full flex-col gap-2 self-center overflow-hidden rounded-lg p-2">
@@ -85,6 +101,8 @@ export function ImageEditor() {
 
 				{/* Pan & Zoom Canvas */}
 				<TransformWrapper
+					onInit={handleTransformInit}
+					onTransformed={handleTransform}
 					minScale={0.5}
 					centerZoomedOut
 					limitToBounds={false}

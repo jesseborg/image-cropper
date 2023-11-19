@@ -12,11 +12,18 @@ export type AspectRatio = {
 	value: number;
 };
 
+export type Transform = {
+	x: number;
+	y: number;
+	scale: number;
+};
+
 type EditorState = {
 	originalImage: string | null;
 	croppedImage: string | null;
 	cropRect: Rect;
 	aspectRatio: AspectRatio;
+	transform: Transform;
 };
 
 const intitialState: EditorState = {
@@ -26,6 +33,11 @@ const intitialState: EditorState = {
 	aspectRatio: {
 		key: 'Free',
 		value: 0
+	},
+	transform: {
+		x: 0,
+		y: 0,
+		scale: 1
 	}
 };
 
@@ -35,6 +47,7 @@ interface EditorStore extends EditorState {
 		setCroppedImage: (croppedImage: string) => void;
 		setCropRect: (cropRect: Rect) => void;
 		setAspectRatio: (aspectRatio: AspectRatio) => void;
+		setTransform: (transform: Transform) => void;
 		removeCroppedImage: () => void;
 		resetCropState: () => void;
 	};
@@ -51,6 +64,7 @@ const useEditorStore = create<EditorStore>((set) => ({
 		setCroppedImage: (croppedImage: string) => set(() => ({ croppedImage })),
 		setCropRect: (cropRect: Rect) => set(() => ({ cropRect })),
 		setAspectRatio: (aspectRatio: AspectRatio) => set(() => ({ aspectRatio })),
+		setTransform: (transform: Transform) => set(() => ({ transform })),
 		removeCroppedImage: () =>
 			set((state) => {
 				URL.revokeObjectURL(state.croppedImage!);
@@ -68,4 +82,5 @@ export const useOriginalImage = () => useEditorStore((state) => state.originalIm
 export const useCroppedImage = () => useEditorStore((state) => state.croppedImage);
 export const useCropRect = () => useEditorStore((state) => state.cropRect);
 export const useAspectRatio = () => useEditorStore((state) => state.aspectRatio);
+export const useTransform = () => useEditorStore((state) => state.transform);
 export const useCropActions = () => useEditorStore((state) => state.actions);
