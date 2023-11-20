@@ -25,7 +25,7 @@ export function ImageDownload() {
 
 		const link = document.createElement('a');
 		link.download = `cropped_${Math.round(width)}x${Math.round(height)}.png`;
-		link.href = croppedImage;
+		link.href = croppedImage.src;
 		link.click();
 	}
 
@@ -39,7 +39,7 @@ export function ImageDownload() {
 			<div className="relative flex h-full items-center justify-center overflow-hidden">
 				<img
 					className="relative z-10 max-h-full w-auto rounded-lg object-cover"
-					src={croppedImage!}
+					src={croppedImage?.src}
 					alt="Cropped Image"
 				/>
 			</div>

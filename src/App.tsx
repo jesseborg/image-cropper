@@ -26,7 +26,7 @@ function App() {
 function Background() {
 	const originalImage = useOriginalImage();
 	const croppedImage = useCroppedImage();
-	const backgroundImage = croppedImage || originalImage;
+	const backgroundImage = croppedImage?.src || originalImage?.src;
 
 	return (
 		<div className="pointer-events-none absolute inset-0 overflow-hidden">

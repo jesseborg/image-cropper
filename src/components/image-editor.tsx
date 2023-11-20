@@ -2,16 +2,16 @@
 import { animated, useSpring } from '@react-spring/web';
 import { useGesture } from '@use-gesture/react';
 import clsx from 'clsx';
-import {
+import React, {
 	CSSProperties,
 	ComponentProps,
-	RefObject,
 	useCallback,
 	useEffect,
 	useRef,
 	useState
 } from 'react';
 import {
+	ReactZoomPanPinchContentRef,
 	ReactZoomPanPinchRef,
 	TransformComponent,
 	TransformWrapper,
@@ -28,7 +28,7 @@ import {
 	type Rectangle
 } from '../stores/editor';
 import { clamp } from '../utils/clamp';
-import { CropImageToBlob } from '../utils/crop-image-to-blob';
+import { CropImage } from '../utils/crop-image';
 import { Button } from './button';
 
 export function ImageEditor() {
@@ -39,15 +39,12 @@ export function ImageEditor() {
 	const crop = useCropRect();
 	const aspectRatio = useAspectRatio();
 	const transform = useTransform();
-	const { setCropRect, setCroppedImage, setAspectRatio, resetCropState, setTransform } =
-		useCropActions();
+	const { setCropRect, setCroppedImage, resetCropState, setTransform } = useCropActions();
 
-	const [isLoading, setIsLoading] = useState(true);
-
-	const imageRef = useRef<HTMLImageElement>(null);
 	const imageTooSmall =
-		imageRef.current &&
-		(imageRef.current.naturalWidth < 350 || imageRef.current.naturalHeight < 350);
+		originalImage && (originalImage.naturalWidth < 350 || originalImage.naturalHeight < 350);
+
+	const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
 
 	function handleCancelCrop() {
 		resetCropState();
@@ -55,17 +52,28 @@ export function ImageEditor() {
 	}
 
 	async function handleCropImage() {
-		if (!imageRef.current) {
+		if (!originalImage) {
 			return;
 		}
 
-		const blob = await CropImageToBlob(imageRef.current, crop);
-		setCroppedImage(blob);
+		setCroppedImage(await CropImage(originalImage, crop));
 		nextStep();
 	}
 
-	function handleTransformInit({ setTransform }: ReactZoomPanPinchRef) {
-		setTransform(transform.x, transform.y, transform.scale, 10);
+	function handleTransformInit(ref: ReactZoomPanPinchRef) {
+		if (imageTooSmall && !transform) {
+			const transformRect =
+				transformRef.current!.instance.wrapperComponent!.getBoundingClientRect();
+			ref.setTransform(
+				(transformRect.width - originalImage.width) / 2,
+				(transformRect.height - originalImage.height) / 2,
+				1,
+				10
+			);
+			return;
+		}
+
+		ref.setTransform(transform?.x ?? 0, transform?.y ?? 0, transform?.scale ?? 1, 10);
 	}
 
 	function handleTransform({ state: { positionX: x, positionY: y, scale } }: ReactZoomPanPinchRef) {
@@ -80,6 +88,7 @@ export function ImageEditor() {
 
 				{/* Pan & Zoom Canvas */}
 				<TransformWrapper
+					ref={transformRef}
 					onInit={handleTransformInit}
 					onTransformed={handleTransform}
 					minScale={0.5}
@@ -104,27 +113,15 @@ export function ImageEditor() {
 							'!h-auto': imageTooSmall
 						})}
 					>
-						{!isLoading && (
-							<CropTool
-								initialCrop={crop}
-								aspectRatio={aspectRatio.value}
-								boundsRef={imageRef}
-								onChange={setCropRect}
-							/>
-						)}
-						<div className="contents max-h-full w-full items-center justify-center">
-							<img
-								ref={imageRef}
-								className="max-h-full"
-								src={originalImage!}
-								onLoad={() => setIsLoading(false)}
-							/>
-						</div>
+						<CropTool initialCrop={crop} aspectRatio={aspectRatio.value} onChange={setCropRect}>
+							{/* <div className="contents max-h-full w-full items-center justify-center" /> */}
+							<img className="max-h-full" src={originalImage?.src} />
+						</CropTool>
 					</TransformComponent>
 				</TransformWrapper>
 
 				{/* Metadata & Controls */}
-				<CropControls crop={crop} onAspectRatioChange={setAspectRatio} />
+				<CropControls />
 			</div>
 
 			<div className="space-x-2 self-end">
@@ -142,21 +139,37 @@ export function ImageEditor() {
 type CropToolsProps = {
 	initialCrop: Rectangle;
 	aspectRatio?: number;
-	boundsRef: RefObject<HTMLImageElement>;
 	onChange?: (value: Rectangle) => void;
 };
-function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToolsProps) {
+
+type CropToolsPropsWithChildren = CropToolsProps & {
+	children: JSX.Element;
+};
+
+function CropTool({
+	initialCrop,
+	aspectRatio = 0,
+	onChange,
+	children
+}: CropToolsPropsWithChildren) {
 	const [scale, setScale] = useState(1);
 	useTransformEffect(({ state }) => setScale(state.scale));
 
 	const cropRef = useRef<HTMLDivElement>(null);
+	const boundsRef = useRef<HTMLImageElement>(null);
 
 	// This is the scale factor from the original image to whats rendered on the screen
-	const boundsScaleFactor = boundsRef.current!.naturalWidth / boundsRef.current!.clientWidth;
+	const boundsScaleFactor = boundsRef.current
+		? boundsRef.current.naturalWidth / boundsRef.current.clientWidth
+		: 1;
 	const MIN_SIZE = 128;
 
 	const keepCropInBounds = useCallback(
 		(crop: Rectangle) => {
+			if (!boundsRef.current) {
+				return crop;
+			}
+
 			// Calculate new height considering aspect ratio
 			const newHeight = aspectRatio ? crop.width / aspectRatio : crop.height;
 
@@ -164,19 +177,19 @@ function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToo
 			const clampedHeight = clamp(
 				newHeight,
 				MIN_SIZE / boundsScaleFactor,
-				boundsRef.current!.clientHeight
+				boundsRef.current.clientHeight
 			);
 
 			// Calculate new width based on clamped height and aspect ratio
 			const clampedWidth = clamp(
 				aspectRatio ? clampedHeight * aspectRatio : crop.width,
 				MIN_SIZE / boundsScaleFactor,
-				boundsRef.current!.clientWidth
+				boundsRef.current.clientWidth
 			);
 
 			// Keep crop within bounds
-			const adjustedX = Math.min(crop.x, boundsRef.current!.clientWidth - clampedWidth);
-			const adjustedY = Math.min(crop.y, boundsRef.current!.clientHeight - clampedHeight);
+			const adjustedX = Math.min(crop.x, boundsRef.current.clientWidth - clampedWidth);
+			const adjustedY = Math.min(crop.y, boundsRef.current.clientHeight - clampedHeight);
 
 			// Return the final values for the rectangle within bounds
 			return {
@@ -407,10 +420,6 @@ function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToo
 	);
 
 	useEffect(() => {
-		if (!boundsRef.current) {
-			return;
-		}
-
 		function handleResize() {
 			api.set(
 				keepCropInBounds({
@@ -437,72 +446,81 @@ function CropTool({ initialCrop, aspectRatio = 0, boundsRef, onChange }: CropToo
 	}, [boundsScaleFactor]);
 
 	return (
-		<div>
-			<animated.div
-				{...bind()}
-				ref={cropRef}
-				style={{
-					x: x.to(Math.round),
-					y: y.to(Math.round),
-					// +2px for border
-					width: width.to((val) => Math.round(val) + 2),
-					height: height.to((val) => Math.round(val) + 2)
-				}}
-				className="absolute z-10 cursor-move touch-none"
-			>
-				<svg className="absolute h-full w-full overflow-visible">
-					<g className="stroke-neutral-300" strokeWidth={2 / scale}>
-						<rect x="0" y="0" width="100%" height="100%" fill="none" />
-					</g>
-					<g
-						style={{ r: 6 / scale } as CSSProperties}
-						className="fill-neutral-50 [r:6] [&>circle]:[r:inherit]"
-					>
-						<circle data-id="top-left" className="cursor-nw-resize" cx="0" cy="0" />
-						<circle data-id="top-right" className="cursor-ne-resize" cx="100%" cy="0" />
-						<circle data-id="bottom-right" className="cursor-nw-resize" cx="100%" cy="100%" />
-						<circle data-id="bottom-left" className="cursor-ne-resize" cx="0" cy="100%" />
-					</g>
-					<g className="stroke-white opacity-30" strokeWidth={2 / scale}>
-						<line x1="33.33%" y1="0" x2="33.33%" y2="100%" />
-						<line x1="66.66%" y1="0" x2="66.66%" y2="100%" />
-						<line x1="0" y1="33.33%" x2="100%" y2="33.33%" />
-						<line x1="0" y1="66.66%" x2="100%" y2="66.66%" />
-					</g>
+		<>
+			<span>
+				<animated.div
+					{...bind()}
+					ref={cropRef}
+					style={{
+						x: x.to(Math.round),
+						y: y.to(Math.round),
+						// +2px for border
+						width: width.to((val) => Math.round(val) + 2),
+						height: height.to((val) => Math.round(val) + 2)
+					}}
+					className="absolute z-10 cursor-move touch-none"
+				>
+					<svg className="absolute h-full w-full overflow-visible">
+						<g className="stroke-neutral-300" strokeWidth={2 / scale}>
+							<rect x="0" y="0" width="100%" height="100%" fill="none" />
+						</g>
+						<g
+							style={{ r: 6 / scale } as CSSProperties}
+							className="fill-neutral-50 [r:6] [&>circle]:[r:inherit]"
+						>
+							<circle data-id="top-left" className="cursor-nw-resize" cx="0" cy="0" />
+							<circle data-id="top-right" className="cursor-ne-resize" cx="100%" cy="0" />
+							<circle data-id="bottom-right" className="cursor-nw-resize" cx="100%" cy="100%" />
+							<circle data-id="bottom-left" className="cursor-ne-resize" cx="0" cy="100%" />
+						</g>
+						<g className="stroke-white opacity-30" strokeWidth={2 / scale}>
+							<line x1="33.33%" y1="0" x2="33.33%" y2="100%" />
+							<line x1="66.66%" y1="0" x2="66.66%" y2="100%" />
+							<line x1="0" y1="33.33%" x2="100%" y2="33.33%" />
+							<line x1="0" y1="66.66%" x2="100%" y2="66.66%" />
+						</g>
+					</svg>
+				</animated.div>
+				{/* Shadow */}
+				<svg id="crop-shadow" className="pointer-events-none absolute h-full w-full">
+					<defs>
+						<mask id="crop">
+							<rect x="0" y="0" width="100%" height="100%" fill="white" />
+							<animated.rect
+								style={{
+									x: x.to(Math.round),
+									y: y.to(Math.round),
+									// +2px for border
+									width: width.to((val) => Math.round(val) + 2),
+									height: height.to((val) => Math.round(val) + 2)
+								}}
+								fill="black"
+							/>
+						</mask>
+					</defs>
+					<rect className="fill-black/50" width="100%" height="100%" mask="url(#crop)" />
 				</svg>
-			</animated.div>
+			</span>
 
-			{/* Shadow */}
-			<svg id="crop-shadow" className="pointer-events-none absolute h-full w-full">
-				<defs>
-					<mask id="crop">
-						<rect x="0" y="0" width="100%" height="100%" fill="white" />
-						<animated.rect
-							style={{
-								x: x.to(Math.round),
-								y: y.to(Math.round),
-								// +2px for border
-								width: width.to((val) => Math.round(val) + 2),
-								height: height.to((val) => Math.round(val) + 2)
-							}}
-							fill="black"
-						/>
-					</mask>
-				</defs>
-
-				<rect className="fill-black/50" width="100%" height="100%" mask="url(#crop)" />
-			</svg>
-		</div>
+			<RefHolder ref={boundsRef} children={children} />
+		</>
 	);
 }
 
-type ControlsProps = {
-	crop: Rectangle;
-	onAspectRatioChange?: (aspectRatio: AspectRatio) => void;
-};
+const RefHolder = React.forwardRef(
+	(
+		{ children }: { children: JSX.Element },
+		ref: React.MutableRefObject<unknown> | React.RefCallback<unknown> | null
+	) => {
+		return React.cloneElement(children, { ref });
+	}
+);
 
-function CropControls({ crop, onAspectRatioChange }: ControlsProps) {
+function CropControls() {
+	const crop = useCropRect();
 	const aspectRatio = useAspectRatio();
+	const { setAspectRatio } = useCropActions();
+
 	const aspectRatios: AspectRatio[] = [
 		{ key: 'Free', value: 0 },
 		{ key: '1:1', value: 1 / 1 },
@@ -532,7 +550,7 @@ function CropControls({ crop, onAspectRatioChange }: ControlsProps) {
 						})}
 						variant="blank"
 						padding="none"
-						onClick={() => onAspectRatioChange?.(ratio)}
+						onClick={() => setAspectRatio(ratio)}
 					>
 						{ratio.key}
 					</Button>

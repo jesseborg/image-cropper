@@ -27,8 +27,12 @@ export function ImageUpload() {
 	// @ts-ignore
 	const validationErrors = validationResult.error?.issues;
 
-	const handleImageLoad = (url: string) => {
-		setOriginalImage(url);
+	const handleImageLoad = async (url: string) => {
+		const image = new Image();
+		image.src = url;
+		await image.decode();
+
+		setOriginalImage(image);
 		nextStep();
 	};
 

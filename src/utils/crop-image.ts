@@ -1,7 +1,7 @@
 import { Rectangle } from '../stores/editor';
 
-export function CropImageToBlob(image: HTMLImageElement, crop: Rectangle) {
-	return new Promise((resolve: (url: string) => void, reject: () => void) => {
+export function CropImage(image: HTMLImageElement, crop: Rectangle) {
+	return new Promise((resolve: (image: HTMLImageElement) => void, reject: () => void) => {
 		const canvas = document.createElement('canvas');
 		const ctx = canvas.getContext('2d');
 
@@ -14,12 +14,16 @@ export function CropImageToBlob(image: HTMLImageElement, crop: Rectangle) {
 
 		ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
 
-		canvas.toBlob((blob) => {
+		canvas.toBlob(async (blob) => {
 			if (!blob) {
 				return reject();
 			}
 
-			return resolve(URL.createObjectURL(blob));
+			const image = new Image();
+			image.src = URL.createObjectURL(blob);
+			await image.decode();
+
+			return resolve(image);
 		});
 	});
 }
