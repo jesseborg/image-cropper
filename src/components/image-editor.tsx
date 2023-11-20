@@ -545,7 +545,7 @@ function CropControls() {
 				{aspectRatios.map((ratio) => (
 					<Button
 						key={ratio.key}
-						className={clsx('rounded-sm font-medium text-neutral-500 hover:text-neutral-950', {
+						className={clsx('rounded-sm font-medium text-neutral-400 hover:text-neutral-950', {
 							'text-neutral-950': ratio.value === aspectRatio.value
 						})}
 						variant="blank"
