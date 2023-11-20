@@ -455,8 +455,8 @@ function CropTool({
 						x: x.to(Math.round),
 						y: y.to(Math.round),
 						// +2px for border
-						width: width.to((val) => Math.round(val) + 2),
-						height: height.to((val) => Math.round(val) + 2)
+						width: width.to((val) => Math.round(val)),
+						height: height.to((val) => Math.round(val))
 					}}
 					className="absolute z-10 cursor-move touch-none"
 				>
@@ -491,8 +491,8 @@ function CropTool({
 									x: x.to(Math.round),
 									y: y.to(Math.round),
 									// +2px for border
-									width: width.to((val) => Math.round(val) + 2),
-									height: height.to((val) => Math.round(val) + 2)
+									width: width.to((val) => Math.round(val)),
+									height: height.to((val) => Math.round(val))
 								}}
 								fill="black"
 							/>
