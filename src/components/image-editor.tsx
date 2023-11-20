@@ -162,7 +162,7 @@ function CropTool({
 	const boundsScaleFactor = boundsRef.current
 		? boundsRef.current.naturalWidth / boundsRef.current.clientWidth
 		: 1;
-	const MIN_SIZE = 128;
+	const MIN_SIZE = 1;
 
 	const keepCropInBounds = useCallback(
 		(crop: Rectangle) => {
