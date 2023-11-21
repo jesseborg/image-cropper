@@ -29,7 +29,7 @@ import {
 	type Rectangle
 } from '../stores/editor';
 import { clamp } from '../utils/clamp';
-import { CropImage } from '../utils/crop-image';
+import { cropImage } from '../utils/crop-image';
 import { Button } from './button';
 
 export function ImageEditor() {
@@ -57,7 +57,7 @@ export function ImageEditor() {
 			return;
 		}
 
-		setCroppedImage(await CropImage(originalImage, crop));
+		setCroppedImage(await cropImage(originalImage, crop));
 		nextStep();
 	}
 
