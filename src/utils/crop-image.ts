@@ -9,10 +9,14 @@ export function CropImage(image: HTMLImageElement, crop: Rectangle) {
 			return;
 		}
 
-		ctx.canvas.width = crop.width;
-		ctx.canvas.height = crop.height;
+		// Clamp to original image bounds
+		const width = Math.min(crop.width, image.width);
+		const height = Math.min(crop.height, image.height);
 
-		ctx.drawImage(image, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
+		ctx.canvas.width = width;
+		ctx.canvas.height = height;
+
+		ctx.drawImage(image, crop.x, crop.y, width, height, 0, 0, width, height);
 
 		canvas.toBlob(async (blob) => {
 			if (!blob) {

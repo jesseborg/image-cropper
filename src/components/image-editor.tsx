@@ -199,7 +199,7 @@ function CropTool({
 				height: clampedHeight
 			};
 		},
-		[aspectRatio, boundsScaleFactor]
+		[boundsRef.current, aspectRatio, boundsScaleFactor]
 	);
 
 	const [{ x, y, width, height }, api] = useSpring(
@@ -220,7 +220,7 @@ function CropTool({
 				});
 			}
 		}),
-		[aspectRatio, boundsScaleFactor]
+		[boundsRef.current, aspectRatio, boundsScaleFactor]
 	);
 
 	const bind = useGesture(
