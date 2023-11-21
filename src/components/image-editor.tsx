@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import React, {
 	CSSProperties,
 	ComponentProps,
+	ReactElement,
 	useCallback,
 	useEffect,
 	useRef,
@@ -143,7 +144,7 @@ type CropToolsProps = {
 };
 
 type CropToolsPropsWithChildren = CropToolsProps & {
-	children: JSX.Element;
+	children: ReactElement<HTMLImageElement>;
 };
 
 function CropTool({
@@ -508,10 +509,7 @@ function CropTool({
 }
 
 const RefHolder = React.forwardRef(
-	(
-		{ children }: { children: JSX.Element },
-		ref: React.MutableRefObject<unknown> | React.RefCallback<unknown> | null
-	) => {
+	({ children }: { children: JSX.Element }, ref: React.Ref<unknown>) => {
 		return React.cloneElement(children, { ref });
 	}
 );
