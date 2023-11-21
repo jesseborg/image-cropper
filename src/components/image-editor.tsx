@@ -93,6 +93,8 @@ export function ImageEditor() {
 					onInit={handleTransformInit}
 					onTransformed={handleTransform}
 					minScale={0.5}
+					maxScale={25}
+					smooth={false}
 					centerZoomedOut
 					limitToBounds={false}
 					disablePadding={true}
@@ -456,8 +458,8 @@ function CropTool({
 						x: x.to(Math.round),
 						y: y.to(Math.round),
 						// +2px for border
-						width: width.to((val) => Math.round(val)),
-						height: height.to((val) => Math.round(val))
+						width: width.to((val) => Math.max(MIN_SIZE, Math.round(val))),
+						height: height.to((val) => Math.max(MIN_SIZE, Math.round(val)))
 					}}
 					className="absolute z-10 cursor-move touch-none"
 				>
@@ -491,9 +493,8 @@ function CropTool({
 								style={{
 									x: x.to(Math.round),
 									y: y.to(Math.round),
-									// +2px for border
-									width: width.to((val) => Math.round(val)),
-									height: height.to((val) => Math.round(val))
+									width: width.to((val) => Math.max(MIN_SIZE, Math.round(val))),
+									height: height.to((val) => Math.max(MIN_SIZE, Math.round(val)))
 								}}
 								fill="black"
 							/>
