@@ -529,19 +529,19 @@ function CropControls() {
 	];
 
 	return (
-		<div className="relative flex flex-wrap gap-2 rounded-lg border border-neutral-400 bg-white p-2 px-3">
-			<div className="mx-auto flex w-auto gap-2 text-xs sm:mx-0 sm:w-0">
-				<p className="font-medium text-neutral-600">
+		<div className="relative flex flex-wrap justify-around gap-2 rounded-lg border border-neutral-400 bg-white p-2 px-3 sm:justify-between">
+			<div className="flex gap-2 text-xs font-medium text-neutral-600">
+				<p>
 					<b className="pr-1 text-neutral-950">W:</b>
 					{Math.round(crop.width)}px
 				</p>
-				<p className="font-medium text-neutral-600">
+				<p>
 					<b className="pr-1 text-neutral-950">H:</b>
 					{Math.round(crop.height)}px
 				</p>
 			</div>
 
-			<div className="mx-auto flex gap-2">
+			<div className="flex gap-2">
 				{aspectRatios.map((ratio) => (
 					<Button
 						key={ratio.key}
