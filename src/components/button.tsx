@@ -2,10 +2,11 @@ import { ButtonHTMLAttributes, forwardRef, PropsWithChildren } from 'react';
 
 import { cva, type VariantProps } from 'class-variance-authority';
 import clsx from 'clsx';
+import { Loader } from './loader';
 
 const button = cva(
 	[
-		'rounded-lg text-xs tracking-[0.0256em] transition-colors duration-200 select-none',
+		'relative rounded-lg text-xs tracking-[0.0256em] transition-colors duration-200 select-none',
 		'focus-visible:ring-2 ring-offset-2 ring-blue-500 outline-none'
 	],
 	{
@@ -24,6 +25,9 @@ const button = cva(
 			padding: {
 				normal: 'px-4 py-2',
 				none: 'p-0'
+			},
+			loading: {
+				true: ''
 			}
 		},
 		defaultVariants: {
@@ -38,15 +42,20 @@ type ButtonProps = VariantProps<typeof button>;
 export const Button = forwardRef<
 	HTMLButtonElement,
 	PropsWithChildren<ButtonProps & ButtonHTMLAttributes<HTMLButtonElement>>
->(({ variant, disabled, padding, className, children, ...props }, ref) => {
+>(({ variant, disabled, padding, loading, className, children, ...props }, ref) => {
 	return (
 		<button
 			ref={ref}
 			type="button"
 			disabled={disabled}
-			className={clsx(button({ variant, disabled, padding }), className)}
+			className={clsx(button({ variant, disabled, padding, loading }), className)}
 			{...props}
 		>
+			{loading && (
+				<span className="absolute left-0 top-0 flex h-full w-full items-center justify-center">
+					<Loader className="h-5 w-5 !border-4 border-neutral-400/50" />
+				</span>
+			)}
 			{children}
 		</button>
 	);

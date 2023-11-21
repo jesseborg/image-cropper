@@ -4,7 +4,7 @@ import { InputHTMLAttributes } from 'react';
 
 const input = cva(
 	[
-		'rounded-lg flex-grow border border-neutral-300 px-4 py-1 text-xs font-medium text-black outline-none placeholder:text-neutral-400/80',
+		'rounded-lg flex-grow border border-neutral-300 px-3 py-1 text-xs font-medium text-black outline-none placeholder:text-neutral-400/80',
 		'focus-visible:ring-2 ring-offset-2 ring-blue-500'
 	],
 	{
