@@ -1,7 +1,7 @@
 import { animated, useSpring } from '@react-spring/web';
 import clsx from 'clsx';
 import { BanIcon, ImagePlus } from 'lucide-react';
-import React, { ChangeEvent, PropsWithChildren, useState } from 'react';
+import React, { ChangeEvent, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { z } from 'zod';
 import { useStepper } from '../hooks/use-stepper';
@@ -19,6 +19,12 @@ const imageURLSchema = z
 	.trim()
 	.regex(/^(https?:\/{2})\S+$/g, "Please check that your link starts with 'http://' or 'https://'")
 	.regex(/^\S+$/g, "Please check that your link doesn't contain extra characters");
+
+type ImageUploadState = {
+	icon: JSX.Element;
+	title: string;
+	body?: string | null;
+};
 
 export function ImageUpload() {
 	const { nextStep } = useStepper();
@@ -40,21 +46,7 @@ export function ImageUpload() {
 		[]
 	);
 
-	const validationResult = imageURLSchema.safeParse(imageURL);
-	const validationErrors = !validationResult.success ? validationResult.error.issues : error;
-
-	const handleImageLoad = async (url: string) => {
-		setIsLoading(true);
-
-		const image = new Image();
-		image.src = url;
-		await image.decode();
-
-		setOriginalImage(image);
-		nextStep();
-	};
-
-	const { isDragReject, getRootProps, getInputProps, isDragActive, open } = useDropzone({
+	const { getRootProps, getInputProps, isDragActive, isDragReject, open } = useDropzone({
 		multiple: false,
 		noClick: true,
 		noKeyboard: true,
@@ -68,6 +60,47 @@ export function ImageUpload() {
 			handleImageLoad(blob);
 		}
 	});
+
+	const validationResult = imageURLSchema.safeParse(imageURL);
+	const validationErrors = !validationResult.success ? validationResult.error.issues : error;
+
+	const state = useMemo((): ImageUploadState => {
+		if (isLoading) {
+			return { icon: <Loader className="border-green-500" />, title: 'Loading...' };
+		}
+
+		if (isDragReject) {
+			return {
+				icon: <BanIcon />,
+				title: 'Invalid file type',
+				body: 'Some valid images will show rejected, but still work'
+			};
+		}
+
+		if (!isDragReject && isDragActive) {
+			return {
+				icon: <ImagePlus />,
+				title: 'Drop image here'
+			};
+		}
+
+		return {
+			icon: <ImagePlus />,
+			title: 'Choose files or drag and drop!',
+			body: `accepts ${ACCEPTED_FILE_TYPES.join(', ')}`
+		};
+	}, [isLoading, isDragReject, isDragActive]);
+
+	const handleImageLoad = async (url: string) => {
+		setIsLoading(true);
+
+		const image = new Image();
+		image.src = url;
+		await image.decode();
+
+		setOriginalImage(image);
+		nextStep();
+	};
 
 	async function handleBadResponse() {
 		setError([{ message: 'Invalid image link, please try again!' }]);
@@ -117,7 +150,7 @@ export function ImageUpload() {
 	return (
 		<div
 			className={clsx(
-				'flex h-[350px] w-[540px] flex-col gap-4 overflow-hidden rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-100 p-4',
+				'flex h-[350px] w-[540px] flex-col gap-4 overflow-hidden rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-100 stroke-black p-4',
 				{
 					'!border-blue-500 !bg-blue-50': isDragActive,
 					'!border-red-500 !bg-red-50': isDragReject,
@@ -127,33 +160,36 @@ export function ImageUpload() {
 			{...getRootProps()}
 		>
 			<Button
+				disabled={isLoading}
 				variant="blank"
 				className={clsx(
-					'flex h-[250px] w-full max-w-[500px] flex-grow select-none flex-col items-center justify-center gap-2 rounded-lg stroke-black px-40 !tracking-normal transition-none hover:bg-neutral-200/60',
+					'flex h-[250px] w-full max-w-[500px] flex-grow select-none flex-col items-center justify-center gap-2 rounded-lg px-40 !tracking-normal transition-none hover:bg-neutral-200/60',
 					{
 						'stroke-blue-500 text-blue-500': isDragActive,
-						'stroke-red-500 text-red-500': isDragReject,
-						'bg-green-50 text-green-500': isLoading
+						'stroke-red-500 !text-red-500': isDragReject,
+						'!bg-green-50 !text-green-500': isLoading
 					}
 				)}
 				onClick={open}
 			>
 				<input {...getInputProps()} />
-				{isLoading ? (
-					<UploadBody icon={<Loader className="border-green-500" />} title="Loading..." />
-				) : (
-					<>
-						{!isDragReject ? (
-							<UploadBody
-								icon={<ImagePlus />}
-								title={isDragActive ? 'Drop image here' : 'Choose files or drag and drop!'}
-								body={isDragActive ? null : `accepts ${ACCEPTED_FILE_TYPES.join(', ')}`}
-							/>
-						) : (
-							<UploadBody icon={<BanIcon />} title="Wrong file type!" />
-						)}
-					</>
-				)}
+				{React.cloneElement(state.icon, {
+					className: clsx('h-12 w-12 stroke-inherit', state.icon.props.className)
+				})}
+				<div className="space-y-1 whitespace-nowrap text-center">
+					<p className="text-sm font-medium">{state.title}</p>
+					{Boolean(state.body) && (
+						<p
+							className={clsx('text-xs font-medium tracking-wide text-neutral-400', {
+								'text-blue-400': isDragActive,
+								'text-red-400': isDragReject,
+								'text-green-400': isLoading
+							})}
+						>
+							{state.body}
+						</p>
+					)}
+				</div>
 			</Button>
 			{!isDragActive && (
 				<>
@@ -182,25 +218,3 @@ export function ImageUpload() {
 }
 
 const AnimatedInput = animated(Input);
-
-type UploadBodyProps = {
-	icon: JSX.Element;
-	title: string;
-	body?: string | null;
-};
-
-function UploadBody({ icon, title, body }: PropsWithChildren<UploadBodyProps>) {
-	return (
-		<>
-			{React.cloneElement(icon, {
-				className: clsx('h-12 w-12 stroke-inherit', icon.props.className)
-			})}
-			<div className="space-y-1 whitespace-nowrap text-center">
-				<p className="text-sm font-medium">{title}</p>
-				{Boolean(body) && (
-					<p className="text-xs font-medium tracking-wide text-neutral-400">{body}</p>
-				)}
-			</div>
-		</>
-	);
-}

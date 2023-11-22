@@ -12,7 +12,7 @@ const button = cva(
 	{
 		variants: {
 			variant: {
-				primary: ['bg-neutral-950 text-white font-light', 'hover:bg-neutral-800'],
+				primary: ['text-white font-light', '[&:not(:disabled)]:hover:bg-neutral-800'],
 				secondary: [
 					'text-black bg-white border font-medium border-neutral-200',
 					'hover:bg-neutral-50'
@@ -20,7 +20,7 @@ const button = cva(
 				blank: ['bg-transparent']
 			},
 			disabled: {
-				true: 'cursor-not-allowed !bg-neutral-200 !text-neutral-400'
+				true: 'cursor-not-allowed bg-neutral-200 !text-neutral-400'
 			},
 			padding: {
 				normal: 'px-4 py-2',
@@ -30,9 +30,18 @@ const button = cva(
 				true: ''
 			}
 		},
+		compoundVariants: [
+			{
+				variant: 'primary',
+				disabled: false,
+				className: 'bg-neutral-950'
+			}
+		],
 		defaultVariants: {
 			variant: 'primary',
-			padding: 'normal'
+			padding: 'normal',
+			disabled: false,
+			loading: false
 		}
 	}
 );
