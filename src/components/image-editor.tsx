@@ -50,12 +50,13 @@ export function ImageEditor() {
 	}
 
 	function handleTransformInit(ref: ReactZoomPanPinchRef) {
-		if (imageTooSmall && !transform) {
+		if (!transform) {
 			const transformRect =
 				transformRef.current!.instance.wrapperComponent!.getBoundingClientRect();
+			const contentRect = transformRef.current!.instance.contentComponent!.getBoundingClientRect();
 			ref.setTransform(
-				(transformRect.width - originalImage.width) / 2,
-				(transformRect.height - originalImage.height) / 2,
+				(transformRect.width - contentRect.width) / 2,
+				(transformRect.height - contentRect.height) / 2,
 				1,
 				10
 			);
@@ -82,10 +83,9 @@ export function ImageEditor() {
 					onTransformed={handleTransform}
 					minScale={0.5}
 					maxScale={25}
-					smooth={false}
 					centerZoomedOut
-					limitToBounds={false}
-					disablePadding={true}
+					smooth={false}
+					disablePadding={false}
 					doubleClick={{ disabled: true }}
 					panning={{
 						velocityDisabled: true,
@@ -94,12 +94,9 @@ export function ImageEditor() {
 					}}
 				>
 					<TransformComponent
-						wrapperClass={clsx(
-							'relative rounded-lg w-full border border-neutral-200 shadow-lg flex items-center justify-center',
-							{
-								'min-h-[350px] min-w-[350px] !block': imageTooSmall
-							}
-						)}
+						wrapperClass={clsx('relative rounded-lg w-full border border-neutral-200 shadow-lg', {
+							'min-h-[350px] min-w-[350px] !block': imageTooSmall
+						})}
 						contentClass={clsx('z-0 h-full', {
 							'!h-auto': imageTooSmall
 						})}
