@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import clsx from 'clsx';
-import { ComponentProps, useRef } from 'react';
+import { ComponentProps, useEffect, useRef } from 'react';
 import {
 	ReactZoomPanPinchContentRef,
 	ReactZoomPanPinchRef,
@@ -69,6 +69,38 @@ export function ImageEditor() {
 	function handleTransform({ state: { positionX: x, positionY: y, scale } }: ReactZoomPanPinchRef) {
 		setTransform({ x, y, scale });
 	}
+
+	useEffect(() => {
+		function handleKeydown(event: KeyboardEvent) {
+			event.preventDefault();
+
+			if (!transformRef.current) {
+				return;
+			}
+
+			if (event.ctrlKey) {
+				switch (event.key) {
+					case '0': {
+						transformRef.current.resetTransform();
+						break;
+					}
+					case '-': {
+						transformRef.current.zoomOut();
+						break;
+					}
+					case '=': {
+						transformRef.current.zoomIn();
+						break;
+					}
+				}
+			}
+		}
+
+		window.addEventListener('keydown', handleKeydown);
+		return () => {
+			window.removeEventListener('keydown', handleKeydown);
+		};
+	}, []);
 
 	return (
 		<div className="flex flex-col gap-2">
