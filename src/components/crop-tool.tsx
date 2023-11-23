@@ -102,10 +102,15 @@ export function CropTool({
 				switch (id) {
 					case 'top-left': {
 						if (aspectRatio) {
-							const newWidth = x.get() + width.get() - ox / scale;
+							const yDiff = y.get() - oy / scale;
+							const xDiff = x.get() - yDiff;
+
+							const newX = Math.min(ox / scale, xDiff);
+							const newWidth = x.get() + width.get() - newX;
 							const newHeight = newWidth / aspectRatio;
+
 							api.set({
-								x: ox / scale,
+								x: newX,
 								y: y.get() + height.get() - newHeight,
 								width: newWidth,
 								height: newHeight
@@ -122,8 +127,12 @@ export function CropTool({
 					}
 					case 'top-right': {
 						if (aspectRatio) {
-							const newWidth = ox / scale;
+							const yDiff = y.get() - oy / scale;
+							const xDiff = width.get() + yDiff;
+
+							const newWidth = Math.max(ox / scale, xDiff);
 							const newHeight = newWidth / aspectRatio;
+
 							api.set({
 								y: y.get() + height.get() - newHeight,
 								width: newWidth,
@@ -140,7 +149,7 @@ export function CropTool({
 					}
 					case 'bottom-right': {
 						if (aspectRatio) {
-							const newSize = ox / scale;
+							const newSize = Math.max(ox, oy * aspectRatio) / scale;
 							api.set({
 								width: newSize,
 								height: newSize / aspectRatio
@@ -152,9 +161,14 @@ export function CropTool({
 					}
 					case 'bottom-left': {
 						if (aspectRatio) {
-							const newSize = x.get() + width.get() - ox / scale;
+							const yDiff = height.get() - oy / scale;
+							const xDiff = x.get() + yDiff;
+
+							const newX = Math.min(ox / scale, xDiff);
+							const newSize = x.get() + width.get() - newX;
+
 							api.set({
-								x: ox / scale,
+								x: newX,
 								width: newSize,
 								height: newSize / aspectRatio
 							});
