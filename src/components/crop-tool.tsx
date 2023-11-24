@@ -221,8 +221,10 @@ export function CropTool({
 								? Math.max(0, cropRect.right - cropRect.bottom * aspectRatio)
 								: 0;
 
+							const top = Math.max(0, cropRect.top - cropRect.left / aspectRatio);
+
 							return {
-								top: 0,
+								top,
 								left,
 								right: cropRect.right - minSize,
 								bottom: cropRect.bottom - minSize
@@ -233,8 +235,13 @@ export function CropTool({
 								? Math.min(boundsRect.width - cropRect.left, cropRect.bottom * aspectRatio)
 								: boundsRect.width - cropRect.left;
 
+							const top = Math.max(
+								0,
+								cropRect.top - (boundsRect.width - cropRect.right) / aspectRatio
+							);
+
 							return {
-								top: 0,
+								top,
 								left: minSize,
 								right,
 								bottom: cropRect.bottom - minSize
@@ -248,11 +255,16 @@ export function CropTool({
 								  )
 								: boundsRect.width - cropRect.left;
 
+							const bottom = Math.min(
+								boundsRect.height - cropRect.top,
+								(boundsRect.width - cropRect.left) / aspectRatio
+							);
+
 							return {
 								top: minSize,
 								left: minSize,
 								right,
-								bottom: boundsRect.height - cropRect.top
+								bottom
 							};
 						}
 						case 'bottom-left': {
@@ -260,11 +272,16 @@ export function CropTool({
 								? Math.max(0, cropRect.right - (boundsRect.height - cropRect.top) * aspectRatio)
 								: 0;
 
+							const bottom = Math.min(
+								boundsRect.height - cropRect.top,
+								(cropRect.right - left) / aspectRatio
+							);
+
 							return {
 								top: minSize,
 								left,
 								right: cropRect.right - minSize,
-								bottom: boundsRect.height - cropRect.top
+								bottom
 							};
 						}
 						default: {
