@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 
 type HotKeyData = {
-	ctrlKey: boolean;
-	action: () => void;
+	ctrlKey?: boolean;
+	action: (event: KeyboardEvent) => void;
 };
 type HotKeysProps = {
 	keys: Record<string, HotKeyData>;
@@ -22,7 +22,7 @@ export function useHotKeys({ keys }: HotKeysProps) {
 			}
 
 			event.preventDefault();
-			hotkey.action();
+			hotkey.action(event);
 		}
 
 		window.addEventListener('keydown', handleKeydown);
