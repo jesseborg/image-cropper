@@ -2,6 +2,7 @@ import { animated, useSpring } from '@react-spring/web';
 import { useGesture } from '@use-gesture/react';
 import { CSSProperties, ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 import { useTransformEffect } from 'react-zoom-pan-pinch';
+import { useHotKeys } from '../hooks/use-hotkeys';
 import { type Rectangle } from '../stores/editor';
 import { clamp } from '../utils/clamp';
 import { RefHolder } from './ref-holder';
@@ -34,6 +35,23 @@ export function CropTool({
 		? boundsRef.current.naturalWidth / boundsRef.current.clientWidth
 		: 1;
 	const MIN_SIZE = 1;
+
+	useHotKeys({
+		keys: {
+			ArrowUp: {
+				action: ({ shiftKey }) => api.set({ y: y.get() - (shiftKey ? 10 : 1) })
+			},
+			ArrowDown: {
+				action: ({ shiftKey }) => api.set({ y: y.get() + (shiftKey ? 10 : 1) })
+			},
+			ArrowLeft: {
+				action: ({ shiftKey }) => api.set({ x: x.get() - (shiftKey ? 10 : 1) })
+			},
+			ArrowRight: {
+				action: ({ shiftKey }) => api.set({ x: x.get() + (shiftKey ? 10 : 1) })
+			}
+		}
+	});
 
 	const keepCropInBounds = useCallback(
 		(crop: Rectangle) => {
