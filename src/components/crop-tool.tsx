@@ -9,6 +9,7 @@ import { RefHolder } from './ref-holder';
 type CropToolsProps = {
 	initialCrop: Rectangle;
 	aspectRatio?: number;
+	showGridLines?: boolean;
 	onChange?: (value: Rectangle) => void;
 };
 
@@ -18,6 +19,7 @@ type CropToolsPropsWithChildren = CropToolsProps & {
 export function CropTool({
 	initialCrop,
 	aspectRatio = 0,
+	showGridLines = true,
 	onChange,
 	children
 }: CropToolsPropsWithChildren) {
@@ -372,12 +374,16 @@ export function CropTool({
 							<circle data-id="bottom-right" className="cursor-nw-resize" cx="100%" cy="100%" />
 							<circle data-id="bottom-left" className="cursor-ne-resize" cx="0" cy="100%" />
 						</g>
-						<g className="stroke-white opacity-30" strokeWidth={2 / scale}>
-							<line x1="33.33%" y1="0" x2="33.33%" y2="100%" />
-							<line x1="66.66%" y1="0" x2="66.66%" y2="100%" />
-							<line x1="0" y1="33.33%" x2="100%" y2="33.33%" />
-							<line x1="0" y1="66.66%" x2="100%" y2="66.66%" />
-						</g>
+
+						{/* Grid Lines */}
+						{showGridLines && (
+							<g className="stroke-white opacity-30" strokeWidth={2 / scale}>
+								<line x1="33.33%" y1="0" x2="33.33%" y2="100%" />
+								<line x1="66.66%" y1="0" x2="66.66%" y2="100%" />
+								<line x1="0" y1="33.33%" x2="100%" y2="33.33%" />
+								<line x1="0" y1="66.66%" x2="100%" y2="66.66%" />
+							</g>
+						)}
 					</svg>
 				</animated.div>
 				{/* Shadow */}
