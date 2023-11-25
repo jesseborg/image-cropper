@@ -34,7 +34,7 @@ function Background() {
 			{!backgroundImage && (
 				<>
 					<svg
-						className="opacity-50 mix-blend-overlay"
+						className="opacity-80 mix-blend-overlay"
 						width="100%"
 						height="100%"
 						viewBox="0 0 1024 1024"
@@ -63,7 +63,7 @@ function Background() {
 
 					{/* Coloured Circles */}
 					<svg
-						className="absolute inset-0 left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 opacity-80 blur-[60px]"
+						className="absolute inset-0 left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 opacity-80 blur-[60px]"
 						width="747"
 						height="533"
 						viewBox="0 0 747 533"
