@@ -29,7 +29,8 @@ export function ImageEditor() {
 	const crop = useCropRect();
 	const aspectRatio = useAspectRatio();
 	const transform = useTransform();
-	const { setCropRect, setCroppedImage, resetCropState, setTransform } = useCropActions();
+	const { setCropRect, setCroppedImage, resetCropState, setTransform, setAspectRatio } =
+		useCropActions();
 
 	const imageTooSmall =
 		originalImage && (originalImage.naturalWidth < 350 || originalImage.naturalHeight < 350);
@@ -119,7 +120,12 @@ export function ImageEditor() {
 							'!h-auto': imageTooSmall
 						})}
 					>
-						<CropTool initialCrop={crop} aspectRatio={aspectRatio.value} onChange={setCropRect}>
+						<CropTool
+							initialCrop={crop}
+							aspectRatio={aspectRatio.value}
+							onChange={setCropRect}
+							onChangeAspectRatio={setAspectRatio}
+						>
 							{/* <div className="contents max-h-full w-full items-center justify-center" /> */}
 							<img className="max-h-full" src={originalImage?.src} />
 						</CropTool>

@@ -3,7 +3,7 @@ import { useGesture } from '@use-gesture/react';
 import { CSSProperties, ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 import { useTransformEffect } from 'react-zoom-pan-pinch';
 import { useHotKeys } from '../hooks/use-hotkeys';
-import { type Rectangle } from '../stores/editor';
+import { AspectRatio, type Rectangle } from '../stores/editor';
 import { clamp } from '../utils/clamp';
 import { RefHolder } from './ref-holder';
 
@@ -12,6 +12,7 @@ type CropToolsProps = {
 	aspectRatio?: number;
 	showGridLines?: boolean;
 	onChange?: (value: Rectangle) => void;
+	onChangeAspectRatio?: (aspectRatio: AspectRatio) => void;
 };
 
 type CropToolsPropsWithChildren = CropToolsProps & {
@@ -27,6 +28,7 @@ export function CropTool({
 	aspectRatio = 0,
 	showGridLines = true,
 	onChange,
+	onChangeAspectRatio,
 	children
 }: CropToolsPropsWithChildren) {
 	const [scale, setScale] = useState(1);
@@ -46,8 +48,11 @@ export function CropTool({
 		{ key, ctrlKey, shiftKey }: KeyboardEvent
 	) => {
 		const direction = key === 'ArrowUp' || key === 'ArrowLeft' ? -1 : 1;
-
 		const distance = (shiftKey ? MOVE_DISTANCE * SHIFT_MULTIPLIER : MOVE_DISTANCE) * direction;
+
+		if (ctrlKey) {
+			onChangeAspectRatio?.({ key: 'Free', value: 0 });
+		}
 
 		api.set({
 			[axis.key!]: ctrlKey ? axis.get() : axis.get() + distance,
@@ -104,10 +109,12 @@ export function CropTool({
 
 	const [{ x, y, width, height }, api] = useSpring(
 		{
-			x: initialCrop.x / boundsScaleFactor,
-			y: initialCrop.y / boundsScaleFactor,
-			width: initialCrop.width / boundsScaleFactor,
-			height: initialCrop.height / boundsScaleFactor,
+			...keepCropInBounds({
+				x: initialCrop.x / boundsScaleFactor,
+				y: initialCrop.y / boundsScaleFactor,
+				width: initialCrop.width / boundsScaleFactor,
+				height: initialCrop.height / boundsScaleFactor
+			}),
 			immediate: true,
 			onChange: ({ value }) => {
 				api.set(
