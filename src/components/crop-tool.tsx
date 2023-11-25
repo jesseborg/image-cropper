@@ -1,4 +1,4 @@
-import { animated, useSpring } from '@react-spring/web';
+import { SpringValue, animated, useSpring } from '@react-spring/web';
 import { useGesture } from '@use-gesture/react';
 import { CSSProperties, ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 import { useTransformEffect } from 'react-zoom-pan-pinch';
@@ -17,6 +17,11 @@ type CropToolsProps = {
 type CropToolsPropsWithChildren = CropToolsProps & {
 	children: ReactElement<HTMLImageElement>;
 };
+
+const MIN_SIZE = 1;
+const MOVE_DISTANCE = 1;
+const SHIFT_MULTIPLIER = 10;
+
 export function CropTool({
 	initialCrop,
 	aspectRatio = 0,
@@ -34,22 +39,28 @@ export function CropTool({
 	const boundsScaleFactor = boundsRef.current
 		? boundsRef.current.naturalWidth / boundsRef.current.clientWidth
 		: 1;
-	const MIN_SIZE = 1;
+
+	const handleArrowKey = (
+		axis: SpringValue<number>,
+		size: SpringValue<number>,
+		{ key, ctrlKey, shiftKey }: KeyboardEvent
+	) => {
+		const direction = key === 'ArrowUp' || key === 'ArrowLeft' ? -1 : 1;
+
+		const distance = (shiftKey ? MOVE_DISTANCE * SHIFT_MULTIPLIER : MOVE_DISTANCE) * direction;
+
+		api.set({
+			[axis.key!]: ctrlKey ? axis.get() : axis.get() + distance,
+			[size.key!]: ctrlKey ? size.get() + distance : size.get()
+		});
+	};
 
 	useHotKeys({
 		keys: {
-			ArrowUp: {
-				action: ({ shiftKey }) => api.set({ y: y.get() - (shiftKey ? 10 : 1) })
-			},
-			ArrowDown: {
-				action: ({ shiftKey }) => api.set({ y: y.get() + (shiftKey ? 10 : 1) })
-			},
-			ArrowLeft: {
-				action: ({ shiftKey }) => api.set({ x: x.get() - (shiftKey ? 10 : 1) })
-			},
-			ArrowRight: {
-				action: ({ shiftKey }) => api.set({ x: x.get() + (shiftKey ? 10 : 1) })
-			}
+			ArrowUp: { action: (event) => handleArrowKey(y, height, event) },
+			ArrowDown: { action: (event) => handleArrowKey(y, height, event) },
+			ArrowLeft: { action: (event) => handleArrowKey(x, width, event) },
+			ArrowRight: { action: (event) => handleArrowKey(x, width, event) }
 		}
 	});
 
@@ -82,8 +93,8 @@ export function CropTool({
 
 			// Return the final values for the rectangle within bounds
 			return {
-				x: adjustedX,
-				y: adjustedY,
+				x: Math.max(0, adjustedX),
+				y: Math.max(0, adjustedY),
 				width: clampedWidth,
 				height: clampedHeight
 			};
@@ -92,15 +103,22 @@ export function CropTool({
 	);
 
 	const [{ x, y, width, height }, api] = useSpring(
-		() => ({
-			...keepCropInBounds({
-				x: initialCrop.x / boundsScaleFactor,
-				y: initialCrop.y / boundsScaleFactor,
-				width: initialCrop.width / boundsScaleFactor,
-				height: initialCrop.height / boundsScaleFactor
-			}),
+		{
+			x: initialCrop.x / boundsScaleFactor,
+			y: initialCrop.y / boundsScaleFactor,
+			width: initialCrop.width / boundsScaleFactor,
+			height: initialCrop.height / boundsScaleFactor,
 			immediate: true,
-			onChange: () => {
+			onChange: ({ value }) => {
+				api.set(
+					keepCropInBounds({
+						x: value.x,
+						y: value.y,
+						width: value.width,
+						height: value.height
+					})
+				);
+
 				onChange?.({
 					x: x.get() * boundsScaleFactor,
 					y: y.get() * boundsScaleFactor,
@@ -108,7 +126,7 @@ export function CropTool({
 					height: height.get() * boundsScaleFactor
 				});
 			}
-		}),
+		},
 		[boundsRef.current, aspectRatio, boundsScaleFactor]
 	);
 
@@ -362,7 +380,7 @@ export function CropTool({
 		return () => {
 			window.removeEventListener('resize', handleResize);
 		};
-	}, [api, height, keepCropInBounds, onChange, width, x, y, boundsScaleFactor]);
+	}, [api, x, y, width, height, boundsScaleFactor, keepCropInBounds, onChange]);
 
 	return (
 		<>
