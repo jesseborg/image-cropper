@@ -166,11 +166,11 @@ function CropControls() {
 		<div className="relative flex flex-wrap justify-around gap-2 rounded-lg border border-neutral-400 bg-white p-2 px-3 sm:justify-between">
 			<div className="flex gap-2 text-xs font-medium text-neutral-600">
 				<p>
-					<b className="pr-1 text-neutral-950">W:</b>
+					<span className="font-semibold pr-1 text-neutral-950">W:</span>
 					{Math.round(crop.width)}px
 				</p>
 				<p>
-					<b className="pr-1 text-neutral-950">H:</b>
+					<span className="font-semibold pr-1 text-neutral-950">H:</span>
 					{Math.round(crop.height)}px
 				</p>
 			</div>
