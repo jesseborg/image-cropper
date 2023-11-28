@@ -1,7 +1,6 @@
 import { SpringValue, animated, useSpring } from '@react-spring/web';
 import { useGesture } from '@use-gesture/react';
-import { CSSProperties, ReactElement, useCallback, useEffect, useRef, useState } from 'react';
-import { useTransformEffect } from 'react-zoom-pan-pinch';
+import { CSSProperties, ReactElement, useCallback, useEffect, useRef } from 'react';
 import { useHotKeys } from '../hooks/use-hotkeys';
 import { AspectRatio, type Rectangle } from '../stores/editor';
 import { clamp } from '../utils/clamp';
@@ -31,15 +30,18 @@ export function CropTool({
 	onChangeAspectRatio,
 	children
 }: CropToolsPropsWithChildren) {
-	const [scale, setScale] = useState(1);
-	useTransformEffect(({ state }) => setScale(state.scale));
-
 	const cropRef = useRef<HTMLDivElement>(null);
 	const boundsRef = useRef<HTMLImageElement>(null);
 
 	// This is the scale factor from the original image to whats rendered on the screen
 	const boundsScaleFactor = boundsRef.current
 		? boundsRef.current.naturalWidth / boundsRef.current.clientWidth
+		: 1;
+
+	const scale = boundsRef.current
+		? Math.round(
+				(boundsRef.current?.getBoundingClientRect().width / boundsRef.current?.clientWidth) * 10
+		  ) / 10
 		: 1;
 
 	const handleArrowKey = (
