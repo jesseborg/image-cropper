@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 
+type Action = (event: KeyboardEvent) => void;
 type HotKeyData = {
 	ctrlKey?: boolean;
-	action: (event: KeyboardEvent) => void;
+	action: Action;
 };
 type HotKeysProps = {
-	keys: Record<string, HotKeyData>;
+	keys: Record<string, HotKeyData | Action>;
 };
 
 export function useHotKeys({ keys }: HotKeysProps) {
@@ -14,6 +15,16 @@ export function useHotKeys({ keys }: HotKeysProps) {
 			const hotkey = keys[event.key];
 
 			if (!hotkey) {
+				return;
+			}
+
+			if (event.key === 'Enter' && document.activeElement?.tagName === 'BUTTON') {
+				return;
+			}
+
+			if (typeof hotkey === 'function') {
+				event.preventDefault();
+				hotkey(event);
 				return;
 			}
 

@@ -50,7 +50,9 @@ export function ImageEditor() {
 			'=': {
 				ctrlKey: true,
 				action: () => transformRef.current!.zoomIn(1, 0)
-			}
+			},
+			'Enter': handleCropImage,
+			'Escape': handleCancelCrop
 		}
 	});
 
@@ -127,7 +129,7 @@ export function ImageEditor() {
 							onChangeAspectRatio={setAspectRatio}
 						>
 							{/* <div className="contents max-h-full w-full items-center justify-center" /> */}
-							<img className="max-h-full" src={originalImage?.src} />
+							<img tabIndex={0} className="max-h-full" src={originalImage?.src} />
 						</CropTool>
 					</TransformComponent>
 				</TransformWrapper>

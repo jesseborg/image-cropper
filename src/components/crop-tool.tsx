@@ -64,10 +64,10 @@ export function CropTool({
 
 	useHotKeys({
 		keys: {
-			ArrowUp: { action: (event) => handleArrowKey(y, height, event) },
-			ArrowDown: { action: (event) => handleArrowKey(y, height, event) },
-			ArrowLeft: { action: (event) => handleArrowKey(x, width, event) },
-			ArrowRight: { action: (event) => handleArrowKey(x, width, event) }
+			ArrowUp: (event) => handleArrowKey(y, height, event),
+			ArrowDown: (event) => handleArrowKey(y, height, event),
+			ArrowLeft: (event) => handleArrowKey(x, width, event),
+			ArrowRight: (event) => handleArrowKey(x, width, event)
 		}
 	});
 
