@@ -150,7 +150,7 @@ export function ImageUpload() {
 	return (
 		<div
 			className={clsx(
-				'flex h-[350px] w-[540px] flex-col gap-4 overflow-hidden rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-100 stroke-black p-4',
+				'flex w-full flex-col gap-4 overflow-hidden rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-100 stroke-black p-4',
 				{
 					'!border-blue-500 !bg-blue-50': isDragActive,
 					'!border-red-500 !bg-red-50': isDragReject,
@@ -163,7 +163,7 @@ export function ImageUpload() {
 				disabled={isLoading}
 				variant="blank"
 				className={clsx(
-					'flex h-[250px] w-full max-w-[500px] flex-grow select-none flex-col items-center justify-center gap-2 rounded-lg px-40 !tracking-normal transition-none hover:bg-neutral-200/60',
+					'flex w-full max-w-[500px] select-none flex-col items-center justify-center gap-2 rounded-lg px-20 py-6 !tracking-normal transition-none hover:bg-neutral-200/60 sm:px-32 sm:py-12',
 					{
 						'stroke-blue-500 text-blue-500': isDragActive,
 						'stroke-red-500 !text-red-500': isDragReject,
@@ -196,6 +196,7 @@ export function ImageUpload() {
 					<hr className="h-[2px] bg-neutral-200" />
 					<div className="flex gap-2">
 						<AnimatedInput
+							className="w-full"
 							style={{ transform: rotate.to((r) => `rotate3d(0, 0, 1, ${r}deg)`) }}
 							error={validationErrors[0]?.message}
 							placeholder="Paste image link..."

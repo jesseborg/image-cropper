@@ -116,7 +116,7 @@ export function ImageEditor() {
 				>
 					<TransformComponent
 						wrapperClass={clsx('relative rounded-lg w-full border border-neutral-200 shadow-lg', {
-							'min-h-[350px] min-w-[350px] !block': imageTooSmall
+							'min-h-[300px] min-w-[300px] !block': imageTooSmall
 						})}
 						contentClass={clsx('z-0 h-full', {
 							'!h-auto': imageTooSmall
@@ -166,11 +166,11 @@ function CropControls() {
 		<div className="relative flex flex-wrap justify-around gap-2 rounded-lg border border-neutral-400 bg-white p-2 px-3 sm:justify-between">
 			<div className="flex gap-2 text-xs font-medium text-neutral-600">
 				<p>
-					<span className="font-semibold pr-1 text-neutral-950">W:</span>
+					<span className="pr-1 font-semibold text-neutral-950">W:</span>
 					{Math.round(crop.width)}px
 				</p>
 				<p>
-					<span className="font-semibold pr-1 text-neutral-950">H:</span>
+					<span className="pr-1 font-semibold text-neutral-950">H:</span>
 					{Math.round(crop.height)}px
 				</p>
 			</div>
