@@ -10,7 +10,7 @@ function App() {
 	return (
 		<main>
 			<Background />
-			<div className="flex h-screen items-center justify-center p-8">
+			<div className="h-viewport flex items-center justify-center p-8">
 				<Container className="max-h-[calc(100vh-32px*2)] max-w-[calc(100vw-32px)] overflow-hidden">
 					<Stepper>
 						<ImageUpload />
