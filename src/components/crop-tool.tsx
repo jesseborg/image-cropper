@@ -136,7 +136,7 @@ export function CropTool({
 				});
 			}
 		},
-		[boundsRef.current, aspectRatio, boundsScaleFactor]
+		[aspectRatio, boundsScaleFactor]
 	);
 
 	const bind = useGesture(
@@ -268,7 +268,7 @@ export function CropTool({
 								? Math.max(0, cropRect.right - cropRect.bottom * aspectRatio)
 								: 0;
 
-							const top = Math.max(0, cropRect.top - cropRect.left / aspectRatio);
+							const top = aspectRatio ? Math.max(0, cropRect.top - cropRect.left / aspectRatio) : 0;
 
 							return {
 								top,
@@ -282,10 +282,9 @@ export function CropTool({
 								? Math.min(boundsRect.width - cropRect.left, cropRect.bottom * aspectRatio)
 								: boundsRect.width - cropRect.left;
 
-							const top = Math.max(
-								0,
-								cropRect.top - (boundsRect.width - cropRect.right) / aspectRatio
-							);
+							const top = aspectRatio
+								? Math.max(0, cropRect.top - (boundsRect.width - cropRect.right) / aspectRatio)
+								: 0;
 
 							return {
 								top,

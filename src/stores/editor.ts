@@ -58,7 +58,15 @@ const useEditorStore = create<EditorStore>((set) => ({
 					URL.revokeObjectURL(state.originalImage.src);
 				}
 
-				return { originalImage };
+				return {
+					originalImage,
+					cropRect: {
+						x: 0,
+						y: 0,
+						width: originalImage.width / 2,
+						height: originalImage.height / 2
+					}
+				};
 			}),
 		setCroppedImage: (croppedImage) => set(() => ({ croppedImage })),
 		setCropRect: (cropRect) => set(() => ({ cropRect })),
