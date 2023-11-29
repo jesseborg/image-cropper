@@ -45,7 +45,7 @@ function Background() {
 							<filter id="whiteNoise">
 								<feTurbulence
 									type="fractalNoise"
-									baseFrequency="32"
+									baseFrequency="1"
 									numOctaves="1"
 									stitchTiles="stitch"
 								/>
