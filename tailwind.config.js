@@ -10,6 +10,11 @@ export default {
 					fontVariationSettings: '"opsz" 32'
 				}
 			]
+		},
+		extend: {
+			height: {
+				viewport: '100svh'
+			}
 		}
 	},
 	plugins: []
