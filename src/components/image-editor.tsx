@@ -33,7 +33,7 @@ export function ImageEditor() {
 		useCropActions();
 
 	const imageTooSmall =
-		originalImage && (originalImage.naturalWidth < 350 || originalImage.naturalHeight < 350);
+		originalImage && (originalImage.naturalWidth < 300 || originalImage.naturalHeight < 300);
 
 	const transformRef = useRef<ReactZoomPanPinchContentRef>(null);
 
@@ -41,15 +41,15 @@ export function ImageEditor() {
 		keys: {
 			'0': {
 				ctrlKey: true,
-				action: () => transformRef.current!.resetTransform(0)
+				action: () => transformRef.current!.zoomToElement('image', undefined, 0)
 			},
 			'-': {
 				ctrlKey: true,
-				action: () => transformRef.current!.zoomOut(1, 0)
+				action: () => transformRef.current!.zoomOut(0.1, 0)
 			},
 			'=': {
 				ctrlKey: true,
-				action: () => transformRef.current!.zoomIn(1, 0)
+				action: () => transformRef.current!.zoomIn(0.1, 0)
 			},
 			'Enter': handleCropImage,
 			'Escape': handleCancelCrop
@@ -71,19 +71,13 @@ export function ImageEditor() {
 	}
 
 	function handleTransformInit(ref: ReactZoomPanPinchRef) {
+		// On init, zoom to the image so it's centered
 		if (!transform) {
-			const transformRect =
-				transformRef.current!.instance.wrapperComponent!.getBoundingClientRect();
-			const contentRect = transformRef.current!.instance.contentComponent!.getBoundingClientRect();
-			ref.setTransform(
-				(transformRect.width - contentRect.width) / 2,
-				(transformRect.height - contentRect.height) / 2,
-				1,
-				10
-			);
+			ref.zoomToElement('image', undefined, 0);
 			return;
 		}
 
+		// Otherwise, set the transform
 		ref.setTransform(transform?.x ?? 0, transform?.y ?? 0, transform?.scale ?? 1, 10);
 	}
 
@@ -102,8 +96,8 @@ export function ImageEditor() {
 					ref={transformRef}
 					onInit={handleTransformInit}
 					onTransformed={handleTransform}
-					minScale={0.5}
-					maxScale={25}
+					minScale={0.1}
+					maxScale={50}
 					centerZoomedOut
 					smooth={false}
 					disablePadding={false}
@@ -115,12 +109,12 @@ export function ImageEditor() {
 					}}
 				>
 					<TransformComponent
-						wrapperClass={clsx('relative rounded-lg w-full border border-neutral-200 shadow-lg', {
-							'min-h-[300px] min-w-[300px] !block': imageTooSmall
-						})}
-						contentClass={clsx('z-0 h-full', {
-							'!h-auto': imageTooSmall
-						})}
+						wrapperClass={clsx(
+							'relative rounded-lg w-full border border-neutral-200 shadow-lg [image-rendering:pixelated]',
+							{
+								'min-h-[300px] min-w-[300px]': imageTooSmall
+							}
+						)}
 					>
 						<CropTool
 							initialCrop={crop}
@@ -128,8 +122,7 @@ export function ImageEditor() {
 							onChange={setCropRect}
 							onChangeAspectRatio={setAspectRatio}
 						>
-							{/* <div className="contents max-h-full w-full items-center justify-center" /> */}
-							<img tabIndex={0} className="max-h-full" src={originalImage?.src} />
+							<img id="image" tabIndex={0} src={originalImage?.src} />
 						</CropTool>
 					</TransformComponent>
 				</TransformWrapper>
@@ -165,6 +158,14 @@ function CropControls() {
 	return (
 		<div className="relative flex flex-wrap justify-around gap-2 rounded-lg border border-neutral-400 bg-white p-2 px-3 sm:justify-between">
 			<div className="flex gap-2 text-xs font-medium text-neutral-600">
+				<p>
+					<span className="pr-1 font-semibold text-neutral-950">X:</span>
+					{Math.round(crop.x)}px
+				</p>
+				<p>
+					<span className="pr-1 font-semibold text-neutral-950">Y:</span>
+					{Math.round(crop.y)}px
+				</p>
 				<p>
 					<span className="pr-1 font-semibold text-neutral-950">W:</span>
 					{Math.round(crop.width)}px
