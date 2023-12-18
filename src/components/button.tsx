@@ -1,7 +1,7 @@
 import { ButtonHTMLAttributes, forwardRef, PropsWithChildren } from 'react';
+import { twMerge } from 'tailwind-merge';
 
 import { cva, type VariantProps } from 'class-variance-authority';
-import clsx from 'clsx';
 import { Loader } from './loader';
 
 const button = cva(
@@ -12,7 +12,10 @@ const button = cva(
 	{
 		variants: {
 			variant: {
-				primary: ['font-light', '[&:not(:disabled)]:hover:bg-neutral-800'],
+				primary: [
+					'font-light',
+					'[&:not(:disabled)]:hover:bg-neutral-800 bg-neutral-950 text-white'
+				],
 				secondary: [
 					'text-black bg-white border font-medium border-neutral-200',
 					'hover:bg-neutral-50'
@@ -30,13 +33,6 @@ const button = cva(
 				true: ''
 			}
 		},
-		compoundVariants: [
-			{
-				variant: 'primary',
-				disabled: false,
-				className: 'bg-neutral-950 text-white'
-			}
-		],
 		defaultVariants: {
 			variant: 'primary',
 			padding: 'normal',
@@ -57,7 +53,7 @@ export const Button = forwardRef<
 			ref={ref}
 			type="button"
 			disabled={disabled}
-			className={clsx(button({ variant, disabled, padding, loading }), className)}
+			className={twMerge(button({ variant, disabled, padding, loading }), className)}
 			{...props}
 		>
 			{loading && (

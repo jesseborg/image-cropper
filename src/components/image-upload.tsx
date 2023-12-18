@@ -150,7 +150,7 @@ export function ImageUpload() {
 	return (
 		<div
 			className={clsx(
-				'flex w-full flex-col gap-4 overflow-hidden rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-100 stroke-black p-4',
+				'flex h-[295px] w-[500px] flex-col justify-center gap-4 overflow-hidden rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-100 stroke-black p-4',
 				{
 					'!border-blue-500 !bg-blue-50': isDragActive,
 					'!border-red-500 !bg-red-50': isDragReject,
@@ -163,11 +163,11 @@ export function ImageUpload() {
 				disabled={isLoading}
 				variant="blank"
 				className={clsx(
-					'flex w-full max-w-[500px] select-none flex-col items-center justify-center gap-2 rounded-lg px-20 py-6 !tracking-normal transition-none hover:bg-neutral-200/60 sm:px-32 sm:py-12',
+					'flex w-full max-w-[500px] select-none flex-col items-center justify-center gap-2 rounded-lg px-20 py-12 !tracking-normal transition-none hover:bg-neutral-200/60 sm:px-32',
 					{
-						'stroke-blue-500 text-blue-500': isDragActive,
-						'stroke-red-500 !text-red-500': isDragReject,
-						'!bg-green-50 !text-green-500': isLoading
+						'stroke-blue-500 text-blue-500 hover:bg-transparent': isDragActive,
+						'stroke-red-500 text-red-500 hover:bg-transparent': isDragReject,
+						'bg-green-50 text-green-500 hover:bg-transparent': isLoading
 					}
 				)}
 				onClick={open}
