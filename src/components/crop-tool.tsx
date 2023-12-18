@@ -1,6 +1,6 @@
 import { SpringValue, animated, useSpring } from '@react-spring/web';
-import { useGesture } from '@use-gesture/react';
-import { CSSProperties, ReactElement, useCallback, useEffect, useRef, useState } from 'react';
+import { EventTypes, FullGestureState, useGesture } from '@use-gesture/react';
+import { CSSProperties, ReactElement, useEffect, useRef, useState } from 'react';
 import { useHotKeys } from '../hooks/use-hotkeys';
 import { AspectRatio, type Rectangle } from '../stores/editor';
 import { clamp } from '../utils/clamp';
@@ -30,16 +30,16 @@ export function CropTool({
 	onChangeAspectRatio,
 	children
 }: CropToolsPropsWithChildren) {
-	const [lastCrop, setLastCrop] = useState(initialCrop);
-
 	const cropRef = useRef<HTMLDivElement>(null);
 	const boundsRef = useRef<HTMLImageElement>(null);
 
 	// This is the scale factor from the original image to whats rendered on the screen
-	const boundsScaleFactor = boundsRef.current
-		? boundsRef.current.naturalWidth / boundsRef.current.clientWidth
-		: 1;
+	const [boundsScaleFactor, setBoundsScaleFactor] = useState({
+		x: 1,
+		y: 1
+	});
 
+	// Get the zoomable canvas scale and round to two decimal places
 	const scale = boundsRef.current
 		? Math.round(
 				(boundsRef.current.getBoundingClientRect().width / boundsRef.current.clientWidth) * 10
@@ -47,218 +47,242 @@ export function CropTool({
 		: 1;
 
 	const handleArrowKey = (
+		{ key, ctrlKey, shiftKey }: KeyboardEvent,
 		axis: SpringValue<number>,
-		size: SpringValue<number>,
-		{ key, ctrlKey, shiftKey }: KeyboardEvent
+		size: SpringValue<number>
 	) => {
+		if (!boundsRef.current) {
+			return;
+		}
+
+		const axisKey = axis.key as 'x' | 'y';
+		const sizeKey = size.key as 'width' | 'height';
+
+		const scaleFactor =
+			sizeKey === 'width' || axisKey === 'x' ? boundsScaleFactor.x : boundsScaleFactor.y;
+
 		const direction = key === 'ArrowUp' || key === 'ArrowLeft' ? -1 : 1;
-		const distance = (shiftKey ? MOVE_DISTANCE * SHIFT_MULTIPLIER : MOVE_DISTANCE) * direction;
+		const distance =
+			((shiftKey ? MOVE_DISTANCE * SHIFT_MULTIPLIER : MOVE_DISTANCE) * direction) / scaleFactor;
+
+		const newAxis = ctrlKey ? axis.get() : axis.get() + distance;
+		const newSize = ctrlKey ? size.get() + distance : size.get();
+
+		const maxAxis = boundsRef.current[sizeKey] - size.get();
+		const maxSize = boundsRef.current[sizeKey] - axis.get();
+
+		const clampedAxis = clamp(newAxis, 0, maxAxis);
+		const clampedSize = clamp(newSize, MIN_SIZE / scaleFactor, maxSize);
 
 		if (ctrlKey) {
 			onChangeAspectRatio?.({ key: 'Free', value: 0 });
 		}
 
-		api.set(
-			keepCropInBounds({
-				x: x.get(),
-				y: y.get(),
-				width: width.get(),
-				height: height.get(),
-				[axis.key!]: ctrlKey ? axis.get() : axis.get() + distance,
-				[size.key!]: ctrlKey ? size.get() + distance : size.get()
-			})
-		);
+		api.set({
+			[axisKey]: clampedAxis,
+			[sizeKey]: clampedSize
+		});
 	};
 
 	useHotKeys({
 		keys: {
-			ArrowUp: (event) => handleArrowKey(y, height, event),
-			ArrowDown: (event) => handleArrowKey(y, height, event),
-			ArrowLeft: (event) => handleArrowKey(x, width, event),
-			ArrowRight: (event) => handleArrowKey(x, width, event)
+			ArrowUp: (event) => handleArrowKey(event, y, height),
+			ArrowDown: (event) => handleArrowKey(event, y, height),
+			ArrowLeft: (event) => handleArrowKey(event, x, width),
+			ArrowRight: (event) => handleArrowKey(event, x, width)
 		}
 	});
 
-	const keepCropInBounds = useCallback(
-		(crop: Rectangle) => {
-			if (!boundsRef.current) {
-				return crop;
-			}
-
-			// Ensure new height is within specified bounds
-			const clampedHeight = clamp(
-				aspectRatio ? crop.width / aspectRatio : crop.height,
-				MIN_SIZE,
-				boundsRef.current.clientHeight
-			);
-
-			// Calculate new width based on clamped height and aspect ratio
-			const clampedWidth = clamp(
-				aspectRatio ? clampedHeight * aspectRatio : crop.width,
-				MIN_SIZE,
-				boundsRef.current.clientWidth
-			);
-
-			// Keep crop within bounds
-			const adjustedX = Math.min(crop.x, boundsRef.current.clientWidth - clampedWidth);
-			const adjustedY = Math.min(crop.y, boundsRef.current.clientHeight - clampedHeight);
-
-			// Return the final values for the rectangle within bounds
-			return {
-				x: Math.max(0, adjustedX),
-				y: Math.max(0, adjustedY),
-				width: clampedWidth,
-				height: clampedHeight
-			};
-		},
-		[aspectRatio]
-	);
-
 	const [{ x, y, width, height }, api] = useSpring(
 		{
-			...keepCropInBounds(initialCrop),
+			// Convert from actual size to canvas size
+			x: initialCrop.x / boundsScaleFactor.x,
+			y: initialCrop.y / boundsScaleFactor.y,
+			width: initialCrop.width / boundsScaleFactor.x,
+			height: initialCrop.height / boundsScaleFactor.y,
 			immediate: true,
 			onChange: () => {
+				// Convert from canvas size to actual size
 				onChange?.({
-					x: x.get() * boundsScaleFactor,
-					y: y.get() * boundsScaleFactor,
-					width: width.get() * boundsScaleFactor,
-					height: height.get() * boundsScaleFactor
+					x: Math.round(x.get() * boundsScaleFactor.x),
+					y: Math.round(y.get() * boundsScaleFactor.y),
+					width: Math.round(width.get() * boundsScaleFactor.x),
+					height: Math.round(height.get() * boundsScaleFactor.y)
 				});
 			}
 		},
 		[aspectRatio, boundsScaleFactor]
 	);
 
-	// Update crop whenever aspect ratio changes
+	// Super hacky way of updating the crop when the aspect ratio changes
 	useEffect(() => {
-		const crop = keepCropInBounds({
-			x: x.get(),
-			y: y.get(),
-			width: width.get(),
-			height: height.get()
-		});
+		if (!cropRef.current) {
+			return;
+		}
 
-		api.set(crop);
-		setLastCrop(crop);
+		const target = cropRef.current.querySelector('[data-id=top-left]') as SVGCircleElement;
+		handleDrag({
+			event: { target },
+			offset: [x.get() * scale, y.get() * scale]
+		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [aspectRatio]);
+
+	// Update the bounds scale factor, when the boundsRef size changes
+	useEffect(() => {
+		if (!boundsRef.current) {
+			return;
+		}
+
+		const observer = new ResizeObserver(({ 0: { contentRect, target } }) => {
+			setBoundsScaleFactor({
+				x: (target as HTMLImageElement).naturalWidth / contentRect.width,
+				y: (target as HTMLImageElement).naturalHeight / contentRect.height
+			});
+		});
+		observer.observe(boundsRef.current);
+
+		return () => observer.disconnect();
+	}, []);
 
 	function setCrop(crop: Partial<Rectangle>) {
 		const rect = Object.fromEntries(
 			Object.entries(crop).map(([key, value]) => {
-				if (key === 'width' || key === 'height') {
-					return [key, Math.max(MIN_SIZE, Math.round(value))];
+				if (key === 'width') {
+					return [key, Math.max(MIN_SIZE, value) / boundsScaleFactor.x];
 				}
-				return [key, Math.round(value)];
+				if (key === 'height') {
+					return [key, Math.max(MIN_SIZE, value) / boundsScaleFactor.y];
+				}
+				if (key === 'x') {
+					return [key, Math.max(0, value) / boundsScaleFactor.x];
+				}
+				if (key === 'y') {
+					return [key, Math.max(0, value) / boundsScaleFactor.y];
+				}
+
+				return [key, value];
 			})
 		);
 		api.set(rect);
 	}
 
+	function handleDrag({
+		event,
+		offset,
+		memo: lastCrop = {
+			x: x.get() * boundsScaleFactor.x,
+			y: y.get() * boundsScaleFactor.y,
+			width: width.get() * boundsScaleFactor.x,
+			height: height.get() * boundsScaleFactor.y
+		}
+	}: Partial<Omit<FullGestureState<'drag'>, 'event'> & { event: Partial<EventTypes['drag']> }>) {
+		const {
+			dataset: { id }
+		} = event!.target as HTMLDivElement;
+
+		const ox = Math.round((offset![0] / scale) * boundsScaleFactor.x);
+		const oy = Math.round((offset![1] / scale) * boundsScaleFactor.y);
+
+		switch (id) {
+			case 'top-left': {
+				if (aspectRatio) {
+					const yDiff = Math.round((lastCrop.y - oy) * aspectRatio);
+					const xDiff = lastCrop.x - yDiff;
+
+					const newX = Math.min(ox, xDiff);
+					const newWidth = lastCrop.x + lastCrop.width - newX;
+					const newHeight = newWidth / aspectRatio;
+
+					setCrop({
+						x: newX,
+						y: Math.round(lastCrop.y + lastCrop.height - newHeight),
+						width: Math.round(newWidth),
+						height: Math.round(newHeight)
+					});
+				} else {
+					setCrop({
+						x: ox,
+						y: oy,
+						width: lastCrop.width - (ox - lastCrop.x),
+						height: lastCrop.height - (oy - lastCrop.y)
+					});
+				}
+				break;
+			}
+			case 'top-right': {
+				if (aspectRatio) {
+					const yDiff = Math.round((lastCrop.y - oy) * aspectRatio);
+					const xDiff = lastCrop.width + yDiff;
+
+					const newWidth = Math.max(ox - lastCrop.x, xDiff);
+					const newHeight = newWidth / aspectRatio;
+
+					const heightDiff = newHeight - lastCrop.height;
+
+					setCrop({
+						y: Math.round(lastCrop.y - heightDiff),
+						width: Math.round(newWidth),
+						height: Math.round(newHeight)
+					});
+				} else {
+					setCrop({
+						y: oy,
+						width: ox - lastCrop.x,
+						height: lastCrop.height - (oy - lastCrop.y)
+					});
+				}
+				break;
+			}
+			case 'bottom-right': {
+				if (aspectRatio) {
+					const newSize = Math.max(ox - lastCrop.x, (oy - lastCrop.y) * aspectRatio);
+					setCrop({
+						width: Math.round(newSize),
+						height: Math.round(newSize / aspectRatio)
+					});
+				} else {
+					setCrop({
+						width: ox - lastCrop.x,
+						height: oy - lastCrop.y
+					});
+				}
+				break;
+			}
+			case 'bottom-left': {
+				if (aspectRatio) {
+					const yDiff = Math.round((lastCrop.height - (oy - lastCrop.y)) * aspectRatio);
+					const xDiff = lastCrop.x + yDiff;
+
+					const newX = Math.min(ox, xDiff);
+					const newSize = lastCrop.x + lastCrop.width - newX;
+
+					setCrop({
+						x: newX,
+						width: Math.round(newSize),
+						height: Math.round(newSize / aspectRatio)
+					});
+				} else {
+					setCrop({
+						x: ox,
+						width: lastCrop.width - (ox - lastCrop.x),
+						height: oy - lastCrop.y
+					});
+				}
+				break;
+			}
+			default: {
+				setCrop({ x: ox, y: oy });
+				break;
+			}
+		}
+
+		return lastCrop;
+	}
+
 	const bind = useGesture(
 		{
-			onDrag: ({ event, offset }) => {
-				const {
-					dataset: { id }
-				} = event.target as HTMLDivElement;
-
-				const ox = Math.round(offset[0] / scale);
-				const oy = Math.round(offset[1] / scale);
-
-				switch (id) {
-					case 'top-left': {
-						if (aspectRatio) {
-							const yDiff = Math.round((lastCrop.y - oy) * aspectRatio);
-							const xDiff = lastCrop.x - yDiff;
-
-							const newX = Math.min(ox, xDiff);
-							const newWidth = lastCrop.x + lastCrop.width - newX;
-							const newHeight = newWidth / aspectRatio;
-
-							setCrop({
-								x: newX,
-								y: lastCrop.y + lastCrop.height - newHeight,
-								width: newWidth,
-								height: newHeight
-							});
-						} else {
-							setCrop({
-								x: ox,
-								y: oy,
-								width: lastCrop.width - (ox - lastCrop.x),
-								height: lastCrop.height - (oy - lastCrop.y)
-							});
-						}
-						break;
-					}
-					case 'top-right': {
-						if (aspectRatio) {
-							const yDiff = Math.round((lastCrop.y - oy) * aspectRatio);
-							const xDiff = lastCrop.width + yDiff;
-
-							const newWidth = Math.max(ox - lastCrop.x, xDiff);
-							const newHeight = newWidth / aspectRatio;
-
-							const heightDiff = newHeight - lastCrop.height;
-
-							setCrop({
-								y: lastCrop.y - heightDiff,
-								width: newWidth,
-								height: newHeight
-							});
-						} else {
-							setCrop({
-								y: oy,
-								width: ox - lastCrop.x,
-								height: lastCrop.height - (oy - lastCrop.y)
-							});
-						}
-						break;
-					}
-					case 'bottom-right': {
-						if (aspectRatio) {
-							const newSize = Math.max(ox - lastCrop.x, (oy - lastCrop.y) * aspectRatio);
-							setCrop({ width: newSize, height: newSize / aspectRatio });
-						} else {
-							setCrop({ width: ox - lastCrop.x, height: oy - lastCrop.y });
-						}
-						break;
-					}
-					case 'bottom-left': {
-						if (aspectRatio) {
-							const yDiff = Math.round((lastCrop.height - (oy - lastCrop.y)) * aspectRatio);
-							const xDiff = lastCrop.x + yDiff;
-
-							const newX = Math.min(ox, xDiff);
-							const newSize = lastCrop.x + lastCrop.width - newX;
-
-							setCrop({
-								x: newX,
-								width: newSize,
-								height: newSize / aspectRatio
-							});
-						} else {
-							setCrop({
-								x: ox,
-								width: lastCrop.width - (ox - lastCrop.x),
-								height: oy - lastCrop.y
-							});
-						}
-						break;
-					}
-					default: {
-						setCrop({ x: ox, y: oy });
-						break;
-					}
-				}
-			},
-			onDragStart: () => {
-				setLastCrop({ x: x.get(), y: y.get(), width: width.get(), height: height.get() });
-			},
-			onDragEnd: () => {
-				setLastCrop({ x: x.get(), y: y.get(), width: width.get(), height: height.get() });
-			}
+			onDrag: handleDrag
 		},
 		{
 			drag: {
@@ -273,17 +297,20 @@ export function CropTool({
 						height: boundsRef.current.clientHeight * scale
 					};
 					const cropRect = {
-						width: cropRef.current.clientWidth * scale,
-						height: cropRef.current.clientHeight * scale,
+						width: width.get() * scale,
+						height: height.get() * scale,
 						top: y.get() * scale,
 						left: x.get() * scale,
-						right: (x.get() + cropRef.current.clientWidth) * scale,
-						bottom: (y.get() + cropRef.current.clientHeight) * scale
+						right: (x.get() + width.get()) * scale,
+						bottom: (y.get() + height.get()) * scale
 					};
 
 					const {
 						dataset: { id }
 					} = event?.target as HTMLDivElement;
+
+					const minSizeX = (MIN_SIZE * scale) / boundsScaleFactor.x;
+					const minSizeY = (MIN_SIZE * scale) / boundsScaleFactor.y;
 
 					switch (id) {
 						case 'top-left': {
@@ -295,8 +322,8 @@ export function CropTool({
 							return {
 								top,
 								left,
-								right: cropRect.right - MIN_SIZE * scale,
-								bottom: cropRect.bottom - MIN_SIZE * scale
+								right: cropRect.right - minSizeX,
+								bottom: cropRect.bottom - minSizeY
 							};
 						}
 						case 'top-right': {
@@ -309,9 +336,9 @@ export function CropTool({
 
 							return {
 								top,
-								left: cropRect.left - MIN_SIZE * scale,
+								left: cropRect.left - minSizeX,
 								right,
-								bottom: cropRect.bottom - MIN_SIZE * scale
+								bottom: cropRect.bottom - minSizeY
 							};
 						}
 						case 'bottom-right': {
@@ -326,8 +353,8 @@ export function CropTool({
 								: boundsRect.height;
 
 							return {
-								top: cropRect.top + MIN_SIZE * scale,
-								left: cropRect.left + MIN_SIZE * scale,
+								top: cropRect.top + minSizeY,
+								left: cropRect.left + minSizeX,
 								right,
 								bottom
 							};
@@ -340,7 +367,7 @@ export function CropTool({
 								? Math.min(boundsRect.height, cropRect.top + (cropRect.right - left) / aspectRatio)
 								: boundsRect.height;
 
-							return { top: 0, left, right: cropRect.right - MIN_SIZE * scale, bottom };
+							return { top: 0, left, right: cropRect.right - minSizeX, bottom };
 						}
 						default: {
 							return {
@@ -376,39 +403,13 @@ export function CropTool({
 		}
 	);
 
-	// useEffect(() => {
-	// 	function handleResize() {
-	// 		const crop = keepCropInBounds({
-	// 			x: x.get(),
-	// 			y: y.get(),
-	// 			width: width.get(),
-	// 			height: height.get()
-	// 		});
-
-	// 		api.set(crop);
-	// 		setLastCrop(crop);
-
-	// 		// onChange?.({
-	// 		// 	x: x.get() * boundsScaleFactor,
-	// 		// 	y: y.get() * boundsScaleFactor,
-	// 		// 	width: width.get() * boundsScaleFactor,
-	// 		// 	height: height.get() * boundsScaleFactor
-	// 		// });
-	// 	}
-
-	// 	window.addEventListener('resize', handleResize);
-
-	// 	return () => {
-	// 		window.removeEventListener('resize', handleResize);
-	// 	};
-	// }, [api, x, y, width, height, boundsScaleFactor, keepCropInBounds, onChange]);
-
 	return (
 		<>
 			<span>
 				{/* Crop Area */}
 				<animated.div
 					{...bind()}
+					id="croppable"
 					ref={cropRef}
 					style={{ x, y, width, height }}
 					className="absolute z-10 cursor-move touch-none"
