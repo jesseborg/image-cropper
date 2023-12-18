@@ -51,6 +51,10 @@ export function ImageEditor() {
 				ctrlKey: true,
 				action: () => transformRef.current!.zoomIn(0.1, 0)
 			},
+			'.': {
+				ctrlKey: true,
+				action: () => transformRef.current!.zoomToElement('croppable', undefined, 0)
+			},
 			'Enter': handleCropImage,
 			'Escape': handleCancelCrop
 		}
@@ -108,23 +112,27 @@ export function ImageEditor() {
 						excluded: ['panning-none', 'rect', 'line', 'svg', 'circle', 'g']
 					}}
 				>
-					<TransformComponent
-						wrapperClass={clsx(
-							'relative rounded-lg w-full border border-neutral-200 shadow-lg [image-rendering:pixelated]',
-							{
-								'min-h-[300px] min-w-[300px]': imageTooSmall
-							}
-						)}
-					>
-						<CropTool
-							initialCrop={crop}
-							aspectRatio={aspectRatio.value}
-							onChange={setCropRect}
-							onChangeAspectRatio={setAspectRatio}
+					{({
+						instance: {
+							transformState: { scale }
+						}
+					}) => (
+						<TransformComponent
+							wrapperClass={clsx('relative rounded-lg w-full border border-neutral-200 shadow-lg', {
+								'min-h-[300px] min-w-[300px]': imageTooSmall,
+								'[image-rendering:pixelated]': scale >= 5
+							})}
 						>
-							<img id="image" tabIndex={0} src={originalImage?.src} />
-						</CropTool>
-					</TransformComponent>
+							<CropTool
+								initialCrop={crop}
+								aspectRatio={aspectRatio.value}
+								onChange={setCropRect}
+								onChangeAspectRatio={setAspectRatio}
+							>
+								<img id="image" tabIndex={0} src={originalImage?.src} />
+							</CropTool>
+						</TransformComponent>
+					)}
 				</TransformWrapper>
 
 				{/* Metadata & Controls */}
@@ -158,14 +166,6 @@ function CropControls() {
 	return (
 		<div className="relative flex flex-wrap justify-around gap-2 rounded-lg border border-neutral-400 bg-white p-2 px-3 sm:justify-between">
 			<div className="flex gap-2 text-xs font-medium text-neutral-600">
-				<p>
-					<span className="pr-1 font-semibold text-neutral-950">X:</span>
-					{Math.round(crop.x)}px
-				</p>
-				<p>
-					<span className="pr-1 font-semibold text-neutral-950">Y:</span>
-					{Math.round(crop.y)}px
-				</p>
 				<p>
 					<span className="pr-1 font-semibold text-neutral-950">W:</span>
 					{Math.round(crop.width)}px
