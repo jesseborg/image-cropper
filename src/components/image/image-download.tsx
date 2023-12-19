@@ -1,7 +1,7 @@
 import { MouseEvent } from 'react';
-import { useStepper } from '../hooks/use-stepper';
-import { useAspectRatio, useCropActions, useCropRect, useCroppedImage } from '../stores/editor';
-import { Button } from './button';
+import { useStepper } from '../../hooks/use-stepper';
+import { useAspectRatio, useCropActions, useCropRect, useCroppedImage } from '../../stores/editor';
+import { Button } from '../common/button';
 
 export function ImageDownload() {
 	const { previousStep } = useStepper();

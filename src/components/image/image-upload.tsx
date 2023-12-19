@@ -4,12 +4,12 @@ import { BanIcon, ImagePlus } from 'lucide-react';
 import React, { ChangeEvent, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { z } from 'zod';
-import { useStepper } from '../hooks/use-stepper';
-import { useCropActions } from '../stores/editor';
-import { sleep } from '../utils/sleep';
-import { Button } from './button';
-import { Input } from './input';
-import { Loader } from './loader';
+import { useStepper } from '../../hooks/use-stepper';
+import { useCropActions } from '../../stores/editor';
+import { sleep } from '../../utils/sleep';
+import { Button } from '../common/button';
+import { Input } from '../common/input';
+import { Loader } from '../common/loader';
 
 const ACCEPTED_FILE_TYPES = ['png', 'jpeg', 'jpg', 'bmp'];
 

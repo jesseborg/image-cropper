@@ -7,8 +7,8 @@ import {
 	TransformComponent,
 	TransformWrapper
 } from 'react-zoom-pan-pinch';
-import { useHotKeys } from '../hooks/use-hotkeys';
-import { useStepper } from '../hooks/use-stepper';
+import { useHotKeys } from '../../hooks/use-hotkeys';
+import { useStepper } from '../../hooks/use-stepper';
 import {
 	AspectRatio,
 	useAspectRatio,
@@ -16,9 +16,9 @@ import {
 	useCropRect,
 	useOriginalImage,
 	useTransform
-} from '../stores/editor';
-import { cropImage } from '../utils/crop-image';
-import { Button } from './button';
+} from '../../stores/editor';
+import { cropImage } from '../../utils/crop-image';
+import { Button } from '../common/button';
 import { CropTool } from './crop-tool';
 
 export function ImageEditor() {
@@ -124,6 +124,7 @@ export function ImageEditor() {
 							})}
 						>
 							<CropTool
+								showGridLines
 								initialCrop={crop}
 								aspectRatio={aspectRatio.value}
 								onChange={setCropRect}

@@ -1,11 +1,11 @@
 import { SpringValue, animated, useSpring } from '@react-spring/web';
 import { EventTypes, FullGestureState, useGesture } from '@use-gesture/react';
 import { CSSProperties, ReactElement, useEffect, useRef, useState } from 'react';
-import { useHotKeys } from '../hooks/use-hotkeys';
-import { AspectRatio, type Rectangle } from '../stores/editor';
-import { clamp } from '../utils/clamp';
-import { simulatePointerEvent } from '../utils/simulate-pointer-event';
-import { RefHolder } from './ref-holder';
+import { useHotKeys } from '../../hooks/use-hotkeys';
+import { AspectRatio, type Rectangle } from '../../stores/editor';
+import { clamp } from '../../utils/clamp';
+import { simulatePointerEvent } from '../../utils/simulate-pointer-event';
+import { RefHolder } from '../utils/ref-holder';
 
 type CropToolsProps = {
 	initialCrop: Rectangle;
@@ -23,36 +23,47 @@ const MIN_SIZE = 1;
 const MOVE_DISTANCE = 1;
 const SHIFT_MULTIPLIER = 10;
 
-export function CropTool({
-	initialCrop,
-	aspectRatio = 0,
-	showGridLines = true,
-	onChange,
-	onChangeAspectRatio,
-	children
-}: CropToolsPropsWithChildren) {
-	const cropRef = useRef<HTMLDivElement>(null);
+export function CropTool({ children, ...props }: CropToolsPropsWithChildren) {
 	const boundsRef = useRef<HTMLImageElement>(null);
+
+	return (
+		<>
+			{boundsRef.current && <Resizable boundsRef={boundsRef.current} {...props} />}
+			<RefHolder ref={boundsRef} children={children} />
+		</>
+	);
+}
+
+type ResizableProps = {
+	boundsRef: HTMLImageElement;
+};
+
+function Resizable({
+	boundsRef,
+	initialCrop,
+	aspectRatio,
+	showGridLines,
+	onChange,
+	onChangeAspectRatio
+}: ResizableProps & CropToolsProps) {
+	const cropRef = useRef<HTMLDivElement>(null);
 
 	// This is the scale factor from the original image to whats rendered on the screen
 	const [boundsScaleFactor, setBoundsScaleFactor] = useState({
-		x: 1,
-		y: 1
+		x: boundsRef.naturalWidth / boundsRef.width,
+		y: boundsRef.naturalHeight / boundsRef.height
 	});
 
 	// Get the zoomable canvas scale and round to two decimal places
-	const scale = boundsRef.current
-		? Math.round(
-				(boundsRef.current.getBoundingClientRect().width / boundsRef.current.clientWidth) * 10
-		  ) / 10
-		: 1;
+	const scale =
+		Math.round((boundsRef.getBoundingClientRect().width / boundsRef.clientWidth) * 10) / 10;
 
 	const handleArrowKey = (
 		{ key, ctrlKey, shiftKey }: KeyboardEvent,
 		axis: SpringValue<number>,
 		size: SpringValue<number>
 	) => {
-		if (!boundsRef.current) {
+		if (!boundsRef) {
 			return;
 		}
 
@@ -69,8 +80,8 @@ export function CropTool({
 		const newAxis = ctrlKey ? axis.get() : axis.get() + distance;
 		const newSize = ctrlKey ? size.get() + distance : size.get();
 
-		const maxAxis = boundsRef.current[sizeKey] - size.get();
-		const maxSize = boundsRef.current[sizeKey] - axis.get();
+		const maxAxis = boundsRef[sizeKey] - size.get();
+		const maxSize = boundsRef[sizeKey] - axis.get();
 
 		const clampedAxis = clamp(newAxis, 0, maxAxis);
 		const clampedSize = clamp(newSize, MIN_SIZE / scaleFactor, maxSize);
@@ -112,7 +123,7 @@ export function CropTool({
 				});
 			}
 		},
-		[aspectRatio, boundsScaleFactor]
+		[boundsScaleFactor]
 	);
 
 	// super hacky way of doing this, but it works ¯\_(ツ)_/¯
@@ -120,6 +131,8 @@ export function CropTool({
 		if (aspectRatio === 0 || !cropRef.current) {
 			return;
 		}
+
+		console.log(scale, boundsScaleFactor);
 
 		const target = cropRef.current.querySelector('[data-id=bottom-right]') as SVGCircleElement;
 		simulatePointerEvent(target, 'pointerdown');
@@ -130,20 +143,16 @@ export function CropTool({
 
 	// Update the bounds scale factor, when the boundsRef size changes
 	useEffect(() => {
-		if (!boundsRef.current) {
-			return;
-		}
-
 		const observer = new ResizeObserver(({ 0: { contentRect, target } }) => {
 			setBoundsScaleFactor({
 				x: (target as HTMLImageElement).naturalWidth / contentRect.width,
 				y: (target as HTMLImageElement).naturalHeight / contentRect.height
 			});
 		});
-		observer.observe(boundsRef.current);
+		observer.observe(boundsRef);
 
 		return () => observer.disconnect();
-	}, []);
+	}, [boundsRef]);
 
 	function setCrop(crop: Partial<Rectangle>) {
 		const rect = Object.fromEntries(
@@ -288,13 +297,13 @@ export function CropTool({
 			drag: {
 				filterTaps: false,
 				bounds: (event) => {
-					if (!boundsRef.current || !cropRef.current) {
+					if (!boundsRef || !cropRef.current) {
 						return {};
 					}
 
 					const boundsRect = {
-						width: boundsRef.current.clientWidth * scale,
-						height: boundsRef.current.clientHeight * scale
+						width: boundsRef.clientWidth * scale,
+						height: boundsRef.clientHeight * scale
 					};
 					const cropRect = {
 						width: width.get() * scale,
@@ -404,56 +413,52 @@ export function CropTool({
 	);
 
 	return (
-		<>
-			<span>
-				{/* Crop Area */}
-				<animated.div
-					{...bind()}
-					id="croppable"
-					ref={cropRef}
-					style={{ x, y, width, height }}
-					className="absolute z-10 cursor-move touch-none"
-				>
-					<svg className="absolute h-full w-full overflow-visible">
-						<g className="stroke-neutral-300" strokeWidth={2 / scale}>
-							<rect x="0" y="0" width="100%" height="100%" fill="none" />
-						</g>
-						{/* Corners */}
-						<g
-							style={{ r: 6 / scale } as CSSProperties}
-							className="fill-neutral-50 [r:6] [&>circle]:[r:inherit]"
-						>
-							<circle data-id="top-left" className="cursor-nw-resize" cx="0" cy="0" />
-							<circle data-id="top-right" className="cursor-ne-resize" cx="100%" cy="0" />
-							<circle data-id="bottom-right" className="cursor-nw-resize" cx="100%" cy="100%" />
-							<circle data-id="bottom-left" className="cursor-ne-resize" cx="0" cy="100%" />
-						</g>
+		<span>
+			{/* Crop Area */}
+			<animated.div
+				{...bind()}
+				id="croppable"
+				ref={cropRef}
+				style={{ x, y, width, height }}
+				className="absolute z-10 cursor-move touch-none"
+			>
+				<svg className="absolute h-full w-full overflow-visible">
+					<g className="stroke-neutral-300" strokeWidth={2 / scale}>
+						<rect x="0" y="0" width="100%" height="100%" fill="none" />
+					</g>
+					{/* Corners */}
+					<g
+						style={{ r: 6 / scale } as CSSProperties}
+						className="fill-neutral-50 [r:6] [&>circle]:[r:inherit]"
+					>
+						<circle data-id="top-left" className="cursor-nw-resize" cx="0" cy="0" />
+						<circle data-id="top-right" className="cursor-ne-resize" cx="100%" cy="0" />
+						<circle data-id="bottom-right" className="cursor-nw-resize" cx="100%" cy="100%" />
+						<circle data-id="bottom-left" className="cursor-ne-resize" cx="0" cy="100%" />
+					</g>
 
-						{/* Grid Lines */}
-						{showGridLines && (
-							<g className="stroke-white opacity-30" strokeWidth={2 / scale}>
-								<line x1="33.33%" y1="0" x2="33.33%" y2="100%" />
-								<line x1="66.66%" y1="0" x2="66.66%" y2="100%" />
-								<line x1="0" y1="33.33%" x2="100%" y2="33.33%" />
-								<line x1="0" y1="66.66%" x2="100%" y2="66.66%" />
-							</g>
-						)}
-					</svg>
-				</animated.div>
-
-				{/* Shadow */}
-				<svg id="crop-shadow" className="pointer-events-none absolute h-full w-full">
-					<defs>
-						<mask id="crop">
-							<rect x="0" y="0" width="100%" height="100%" fill="white" />
-							<animated.rect style={{ x, y, width, height }} fill="black" />
-						</mask>
-					</defs>
-					<rect className="fill-black/50" width="100%" height="100%" mask="url(#crop)" />
+					{/* Grid Lines */}
+					{showGridLines && (
+						<g className="stroke-white opacity-30" strokeWidth={2 / scale}>
+							<line x1="33.33%" y1="0" x2="33.33%" y2="100%" />
+							<line x1="66.66%" y1="0" x2="66.66%" y2="100%" />
+							<line x1="0" y1="33.33%" x2="100%" y2="33.33%" />
+							<line x1="0" y1="66.66%" x2="100%" y2="66.66%" />
+						</g>
+					)}
 				</svg>
-			</span>
+			</animated.div>
 
-			<RefHolder ref={boundsRef} children={children} />
-		</>
+			{/* Shadow */}
+			<svg id="crop-shadow" className="pointer-events-none absolute h-full w-full">
+				<defs>
+					<mask id="crop">
+						<rect x="0" y="0" width="100%" height="100%" fill="white" />
+						<animated.rect style={{ x, y, width, height }} fill="black" />
+					</mask>
+				</defs>
+				<rect className="fill-black/50" width="100%" height="100%" mask="url(#crop)" />
+			</svg>
+		</span>
 	);
 }

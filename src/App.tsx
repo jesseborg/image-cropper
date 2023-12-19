@@ -1,8 +1,8 @@
 import {} from 'react-zoom-pan-pinch';
 import { Container } from './components/container';
-import { ImageDownload } from './components/image-download';
-import { ImageEditor } from './components/image-editor';
-import { ImageUpload } from './components/image-upload';
+import { ImageDownload } from './components/image/image-download';
+import { ImageEditor } from './components/image/image-editor';
+import { ImageUpload } from './components/image/image-upload';
 import { Stepper } from './components/stepper';
 import { useCroppedImage, useOriginalImage } from './stores/editor';
 
