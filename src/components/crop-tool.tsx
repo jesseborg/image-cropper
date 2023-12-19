@@ -4,6 +4,7 @@ import { CSSProperties, ReactElement, useEffect, useRef, useState } from 'react'
 import { useHotKeys } from '../hooks/use-hotkeys';
 import { AspectRatio, type Rectangle } from '../stores/editor';
 import { clamp } from '../utils/clamp';
+import { simulatePointerEvent } from '../utils/simulate-pointer-event';
 import { RefHolder } from './ref-holder';
 
 type CropToolsProps = {
@@ -114,17 +115,16 @@ export function CropTool({
 		[aspectRatio, boundsScaleFactor]
 	);
 
-	// Super hacky way of updating the crop when the aspect ratio changes
+	// super hacky way of doing this, but it works ¯\_(ツ)_/¯
 	useEffect(() => {
-		if (!cropRef.current) {
+		if (aspectRatio === 0 || !cropRef.current) {
 			return;
 		}
 
-		const target = cropRef.current.querySelector('[data-id=top-left]') as SVGCircleElement;
-		handleDrag({
-			event: { target },
-			offset: [x.get() * scale, y.get() * scale]
-		});
+		const target = cropRef.current.querySelector('[data-id=bottom-right]') as SVGCircleElement;
+		simulatePointerEvent(target, 'pointerdown');
+		simulatePointerEvent(target, 'pointerup');
+
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [aspectRatio]);
 
@@ -286,7 +286,7 @@ export function CropTool({
 		},
 		{
 			drag: {
-				filterTaps: true,
+				filterTaps: false,
 				bounds: (event) => {
 					if (!boundsRef.current || !cropRef.current) {
 						return {};
