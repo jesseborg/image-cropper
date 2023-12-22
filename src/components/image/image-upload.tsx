@@ -138,12 +138,15 @@ export function ImageUpload() {
 				</div>
 			</Button>
 			{!isDragActive && (
-				<ImageSearch
-					isLoading={isLoading}
-					onStart={handleImageSearchStart}
-					onSuccess={handleImageSearchSuccess}
-					onError={handleImageSearchError}
-				/>
+				<>
+					<hr className="h-[2px] bg-neutral-200" />
+					<ImageSearch
+						isLoading={isLoading}
+						onStart={handleImageSearchStart}
+						onSuccess={handleImageSearchSuccess}
+						onError={handleImageSearchError}
+					/>
+				</>
 			)}
 		</div>
 	);
@@ -226,27 +229,24 @@ function ImageSearch({ isLoading, onStart, onSuccess, onError }: ImageSearchProp
 	}
 
 	return (
-		<>
-			<hr className="h-[2px] bg-neutral-200" />
-			<div className="flex gap-2">
-				<AnimatedInput
-					className="w-full"
-					style={{ transform: rotate.to((r) => `rotate3d(0, 0, 1, ${r}deg)`) }}
-					error={validationErrors[0]?.message}
-					placeholder="Paste image link..."
-					value={imageURL}
-					onChange={handleImageURLChange}
-				/>
-				<Button
-					loading={isLoading}
-					disabled={Boolean(validationErrors?.length) || isLoading}
-					variant="primary"
-					onClick={() => handleGetImageByURL(imageURL)}
-				>
-					Search
-				</Button>
-			</div>
-		</>
+		<div className="flex gap-2">
+			<AnimatedInput
+				className="w-full"
+				style={{ transform: rotate.to((r) => `rotate3d(0, 0, 1, ${r}deg)`) }}
+				error={validationErrors[0]?.message}
+				placeholder="Paste image link..."
+				value={imageURL}
+				onChange={handleImageURLChange}
+			/>
+			<Button
+				loading={isLoading}
+				disabled={Boolean(validationErrors?.length) || isLoading}
+				variant="primary"
+				onClick={() => handleGetImageByURL(imageURL)}
+			>
+				Search
+			</Button>
+		</div>
 	);
 }
 
