@@ -28,23 +28,9 @@ type ImageUploadState = {
 
 export function ImageUpload() {
 	const { nextStep } = useStepper();
-
 	const { setOriginalImage } = useCropActions();
 
-	const [imageURL, setImageURL] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState<{ message: string }[]>([]);
-
-	const [{ rotate }, api] = useSpring(
-		{
-			from: { rotate: 0 },
-			to: [{ rotate: -1 }, { rotate: 1 }, { rotate: 0 }],
-			config: { duration: 25 },
-			pause: true,
-			loop: true
-		},
-		[]
-	);
 
 	const { getRootProps, getInputProps, isDragActive, isDragReject, open } = useDropzone({
 		multiple: false,
@@ -57,12 +43,9 @@ export function ImageUpload() {
 			}
 
 			const blob = URL.createObjectURL(files[0]);
-			handleImageLoad(blob);
+			handleImageSearchSuccess(blob);
 		}
 	});
-
-	const validationResult = imageURLSchema.safeParse(imageURL);
-	const validationErrors = !validationResult.success ? validationResult.error.issues : error;
 
 	const state = useMemo((): ImageUploadState => {
 		if (isLoading) {
@@ -91,7 +74,7 @@ export function ImageUpload() {
 		};
 	}, [isLoading, isDragReject, isDragActive]);
 
-	const handleImageLoad = async (url: string) => {
+	async function handleImageSearchSuccess(url: string) {
 		setIsLoading(true);
 
 		const image = new Image();
@@ -100,51 +83,14 @@ export function ImageUpload() {
 
 		setOriginalImage(image);
 		nextStep();
-	};
-
-	async function handleBadResponse() {
-		setError([{ message: 'Invalid image link, please try again!' }]);
-		setIsLoading(false);
-
-		api.resume();
-		await sleep(250);
-		api.set({ rotate: 0 });
-		api.pause();
 	}
 
-	async function handleGetImageByURL(url: string) {
-		setError([]);
+	function handleImageSearchStart() {
 		setIsLoading(true);
-
-		try {
-			const response = await fetch(url);
-
-			if (!response.ok) {
-				handleBadResponse();
-				return;
-			}
-
-			const contentType = response.headers.get('content-type');
-			if (!contentType || !contentType.startsWith('image/')) {
-				handleBadResponse();
-				return;
-			}
-
-			// 'image/<type>'
-			if (!ACCEPTED_FILE_TYPES.includes(contentType.split('/')[1])) {
-				return;
-			}
-
-			const blob = URL.createObjectURL(await response.blob());
-			handleImageLoad(blob);
-		} catch (error) {
-			handleBadResponse();
-		}
 	}
 
-	function handleImageURLChange(event: ChangeEvent<HTMLInputElement>) {
-		setError([]);
-		setImageURL(event.currentTarget.value);
+	function handleImageSearchError() {
+		setIsLoading(false);
 	}
 
 	return (
@@ -192,29 +138,115 @@ export function ImageUpload() {
 				</div>
 			</Button>
 			{!isDragActive && (
-				<>
-					<hr className="h-[2px] bg-neutral-200" />
-					<div className="flex gap-2">
-						<AnimatedInput
-							className="w-full"
-							style={{ transform: rotate.to((r) => `rotate3d(0, 0, 1, ${r}deg)`) }}
-							error={validationErrors[0]?.message}
-							placeholder="Paste image link..."
-							value={imageURL}
-							onChange={handleImageURLChange}
-						/>
-						<Button
-							loading={isLoading}
-							disabled={Boolean(validationErrors?.length) || isLoading}
-							variant="primary"
-							onClick={() => handleGetImageByURL(imageURL)}
-						>
-							Search
-						</Button>
-					</div>
-				</>
+				<ImageSearch
+					isLoading={isLoading}
+					onStart={handleImageSearchStart}
+					onSuccess={handleImageSearchSuccess}
+					onError={handleImageSearchError}
+				/>
 			)}
 		</div>
+	);
+}
+
+type ImageSearchProps = {
+	isLoading: boolean;
+	onStart: () => void;
+	onSuccess?: (blob: string) => void;
+	onError?: (error?: string) => void;
+};
+
+function ImageSearch({ isLoading, onStart, onSuccess, onError }: ImageSearchProps) {
+	const [imageURL, setImageURL] = useState('');
+	const [error, setError] = useState<{ message: string }[]>([]);
+
+	const validationResult = imageURLSchema.safeParse(imageURL);
+	const validationErrors = !validationResult.success ? validationResult.error.issues : error;
+
+	const [{ rotate }, api] = useSpring(
+		{
+			from: { rotate: 0 },
+			to: [{ rotate: -1 }, { rotate: 1 }, { rotate: 0 }],
+			config: { duration: 25 },
+			pause: true,
+			loop: true
+		},
+		[]
+	);
+
+	function handleImageURLChange(event: ChangeEvent<HTMLInputElement>) {
+		if (error.length) {
+			setError([]);
+		}
+
+		setImageURL(event.currentTarget.value);
+	}
+
+	async function handleBadResponse() {
+		setError([{ message: 'Invalid image link, please try again!' }]);
+		onError?.('Invalid image link');
+
+		api.resume();
+		await sleep(250);
+		api.set({ rotate: 0 });
+		api.pause();
+	}
+
+	async function handleGetImageByURL(url: string) {
+		setError([]);
+		onStart?.();
+
+		try {
+			const response = await fetch(url);
+
+			if (!response.ok) {
+				handleBadResponse();
+				return;
+			}
+
+			const contentType = response.headers.get('content-type');
+			if (!validateImageContentType(contentType)) {
+				handleBadResponse();
+				return;
+			}
+
+			const blob = URL.createObjectURL(await response.blob());
+			onSuccess?.(blob);
+		} catch (error) {
+			handleBadResponse();
+		}
+	}
+
+	function validateImageContentType(contentType: string | null): boolean {
+		return (
+			!!contentType &&
+			contentType.startsWith('image/') &&
+			ACCEPTED_FILE_TYPES.includes(contentType.split('/')[1])
+		);
+	}
+
+	return (
+		<>
+			<hr className="h-[2px] bg-neutral-200" />
+			<div className="flex gap-2">
+				<AnimatedInput
+					className="w-full"
+					style={{ transform: rotate.to((r) => `rotate3d(0, 0, 1, ${r}deg)`) }}
+					error={validationErrors[0]?.message}
+					placeholder="Paste image link..."
+					value={imageURL}
+					onChange={handleImageURLChange}
+				/>
+				<Button
+					loading={isLoading}
+					disabled={Boolean(validationErrors?.length) || isLoading}
+					variant="primary"
+					onClick={() => handleGetImageByURL(imageURL)}
+				>
+					Search
+				</Button>
+			</div>
+		</>
 	);
 }
 
