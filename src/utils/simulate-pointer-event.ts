@@ -11,6 +11,8 @@ export const simulatePointerEvent = (
 	event: PointerEvents,
 	args?: PointerEventInit
 ) => {
+	const pointerId = /Firefox/.test(navigator.userAgent) ? 0 : 1; // ¯\_(ツ)_/¯
+
 	const { x, y, width, height } = target.getBoundingClientRect();
 	target.dispatchEvent(
 		new PointerEvent(event, {
@@ -18,10 +20,10 @@ export const simulatePointerEvent = (
 			bubbles: true,
 			cancelable: true,
 			button: 0,
-			buttons: event === 'pointerdown' ? 1 : 0,
+			buttons: 1,
 			clientX: x + width / 2,
 			clientY: y + height / 2,
-			pointerId: 1,
+			pointerId,
 			...args
 		})
 	);
