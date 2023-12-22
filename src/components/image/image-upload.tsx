@@ -4,6 +4,7 @@ import { BanIcon, ImagePlus } from 'lucide-react';
 import React, { ChangeEvent, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { z } from 'zod';
+import useOnline from '../../hooks/use-online';
 import { useStepper } from '../../hooks/use-stepper';
 import { useCropActions } from '../../stores/editor';
 import { sleep } from '../../utils/sleep';
@@ -166,6 +167,10 @@ function ImageSearch({ isLoading, onStart, onSuccess, onError }: ImageSearchProp
 	const validationResult = imageURLSchema.safeParse(imageURL);
 	const validationErrors = !validationResult.success ? validationResult.error.issues : error;
 
+	const isOnline = useOnline();
+
+	console.log(isOnline);
+
 	const [{ rotate }, api] = useSpring(
 		{
 			from: { rotate: 0 },
@@ -229,7 +234,11 @@ function ImageSearch({ isLoading, onStart, onSuccess, onError }: ImageSearchProp
 	}
 
 	return (
-		<div className="flex gap-2">
+		<div
+			className={clsx('flex gap-2', {
+				'pointer-events-none opacity-50': !isOnline
+			})}
+		>
 			<AnimatedInput
 				className="w-full"
 				style={{ transform: rotate.to((r) => `rotate3d(0, 0, 1, ${r}deg)`) }}
