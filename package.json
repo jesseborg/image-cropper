@@ -20,10 +20,12 @@
     "react-dropzone": "^14.2.3",
     "react-zoom-pan-pinch": "^3.3.0",
     "tailwind-merge": "^2.1.0",
+    "vite-plugin-pwa": "^0.17.4",
     "zod": "^3.22.4",
     "zustand": "^4.4.6"
   },
   "devDependencies": {
+    "@types/node": "^20.10.5",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
@@ -39,6 +41,7 @@
     "prettier-plugin-tailwindcss": "^0.5.6",
     "tailwindcss": "^3.3.3",
     "typescript": "^5.0.2",
-    "vite": "^4.4.5"
+    "vite": "^4.4.5",
+    "workbox-window": "^7.0.0"
   }
 }
