@@ -236,7 +236,7 @@ function ImageSearch({ isLoading, onStart, onSuccess, onError }: ImageSearchProp
 	return (
 		<div
 			className={clsx('flex gap-2', {
-				'pointer-events-none opacity-50': !isOnline
+				'pointer-events-none select-none opacity-50': !isOnline
 			})}
 		>
 			<AnimatedInput
