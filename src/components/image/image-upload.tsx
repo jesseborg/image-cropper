@@ -1,7 +1,7 @@
 import { animated, useSpring } from '@react-spring/web';
 import clsx from 'clsx';
 import { BanIcon, ImagePlus } from 'lucide-react';
-import React, { ChangeEvent, useMemo, useState } from 'react';
+import React, { ChangeEvent, FormEvent, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { z } from 'zod';
 import useOnline from '../../hooks/use-online';
@@ -169,8 +169,6 @@ function ImageSearch({ isLoading, onStart, onSuccess, onError }: ImageSearchProp
 
 	const isOnline = useOnline();
 
-	console.log(isOnline);
-
 	const [{ rotate }, api] = useSpring(
 		{
 			from: { rotate: 0 },
@@ -233,13 +231,20 @@ function ImageSearch({ isLoading, onStart, onSuccess, onError }: ImageSearchProp
 		);
 	}
 
+	function handleSubmit(event: FormEvent) {
+		event.preventDefault();
+		handleGetImageByURL(imageURL);
+	}
+
 	return (
-		<div
+		<form
+			onSubmit={handleSubmit}
 			className={clsx('flex gap-2', {
 				'pointer-events-none select-none opacity-50': !isOnline
 			})}
 		>
 			<AnimatedInput
+				required
 				className="w-full"
 				style={{ transform: rotate.to((r) => `rotate3d(0, 0, 1, ${r}deg)`) }}
 				error={validationErrors[0]?.message}
@@ -248,14 +253,14 @@ function ImageSearch({ isLoading, onStart, onSuccess, onError }: ImageSearchProp
 				onChange={handleImageURLChange}
 			/>
 			<Button
+				type="submit"
 				loading={isLoading}
 				disabled={Boolean(validationErrors?.length) || isLoading}
 				variant="primary"
-				onClick={() => handleGetImageByURL(imageURL)}
 			>
 				Search
 			</Button>
-		</div>
+		</form>
 	);
 }
 
