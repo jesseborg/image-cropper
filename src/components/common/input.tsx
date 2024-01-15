@@ -25,7 +25,13 @@ export function Input({ error, className, ...props }: InputProps) {
 
 	return (
 		<span className="relative flex flex-grow">
-			<input type="text" className={clsx(className, input({ error: hasError }))} {...props} />
+			<input
+				autoComplete="off"
+				spellCheck="false"
+				type="text"
+				className={clsx(className, input({ error: hasError }))}
+				{...props}
+			/>
 			{hasError && (
 				<p className="absolute top-full pl-1 text-[11px] font-medium text-red-500">{error}</p>
 			)}
